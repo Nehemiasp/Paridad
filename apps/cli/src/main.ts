@@ -4,7 +4,9 @@ import { join } from "node:path";
 import type { AiClient } from "@paridad/ai";
 import { capturePage, writeCapture } from "@paridad/capture";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
+import { runCi } from "./ci.ts";
 import { runCompare, type CompareOptions } from "./compare.ts";
+import { readReport, toSummaryJson, toSummaryText } from "./summary.ts";
 import { openInBrowser, startReportServer, untilInterrupted, type ReportEntryInput } from "./serve.ts";
 import { loadEnvLocal } from "./env.ts";
 import { buildIgnoreZones, parsePositiveInt, parseScale } from "./options.ts";
@@ -150,6 +152,33 @@ export function buildProgram(io: Io = defaultIo, deps: Deps = {}): Command {
       const code = await runCompare(opts, io, deps);
       if (code !== 0) throw new ExitCode(code);
       if (opts.open) await openReports([{ dir: opts.out ?? "out/compare" }], io, deps);
+    });
+
+  program
+    .command("summary")
+    .description("Resume un reporte ya generado: puntaje, conteo y los hallazgos críticos y altos con su evidencia.")
+    .option("--dir <carpeta>", "carpeta del reporte (la que tiene report.json)", "out/compare")
+    .option("--severity <lista>", "severidades a listar, separadas por comas (critical,high,medium,low)", "critical,high")
+    .option("--json", "imprimir JSON estable en lugar de texto")
+    .action((opts: { dir: string; severity: string; json?: boolean }) => {
+      const valid = ["critical", "high", "medium", "low"];
+      const severities = opts.severity.split(",").map((x) => x.trim()).filter(Boolean);
+      const bad = severities.filter((x) => !valid.includes(x));
+      if (bad.length) throw new Error(`Severidad desconocida: ${bad.join(", ")}. Use: ${valid.join(", ")}.`);
+      const report = readReport(opts.dir);
+      const o = { severities: severities as ("critical" | "high" | "medium" | "low")[] };
+      io.out(opts.json ? JSON.stringify(toSummaryJson(report, o), null, 2) + "\n" : toSummaryText(report, o));
+    });
+
+  program
+    .command("ci")
+    .description("Compara varias pantallas (paridad.screens.json) y deja un comentario listo para el pull request.")
+    .option("--screens <archivo>", "lista de pantallas (JSON)", "paridad.screens.json")
+    .option("--out <carpeta>", "carpeta de salida", "out/ci")
+    .option("--fail-under <puntaje>", "puntaje mínimo; si una pantalla queda por debajo, sale con código 2")
+    .action(async (opts: { screens: string; out: string; failUnder?: string }) => {
+      const code = await runCi(opts, io, deps);
+      if (code !== 0) throw new ExitCode(code);
     });
 
   program

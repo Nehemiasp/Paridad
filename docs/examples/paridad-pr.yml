@@ -1,0 +1,25 @@
+# Ejemplo: copie este archivo a .github/workflows/paridad.yml en el repositorio que contiene Paridad y la app.
+# NO está probado en GitHub real (ver docs/github-action.md): pruébelo primero en una rama.
+name: Paridad
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  paridad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Levante aquí la app que se va a comparar (ajuste a su proyecto). Las URL de paridad.screens.json deben apuntar a ella.
+      # - run: npm ci && npm run build && (npm start &) && npx wait-on http://localhost:3000
+
+      - uses: ./.github/actions/paridad
+        with:
+          screens: paridad.screens.json
+          fail-under: "80"
+          figma-token: ${{ secrets.FIGMA_TOKEN }}

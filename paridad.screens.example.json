@@ -1,0 +1,17 @@
+{
+  "failUnder": 80,
+  "screens": [
+    {
+      "name": "Inicio · escritorio",
+      "figma": "https://www.figma.com/design/CLAVE_DEL_ARCHIVO/Mi-diseno?node-id=1-2",
+      "page": "http://localhost:3000/",
+      "ignoreSelectors": [".fecha", "[data-dinamico]"]
+    },
+    {
+      "name": "Inicio · móvil",
+      "figma": "https://www.figma.com/design/CLAVE_DEL_ARCHIVO/Mi-diseno?node-id=1-9",
+      "page": "http://localhost:3000/",
+      "width": 390
+    }
+  ]
+}

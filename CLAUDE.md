@@ -23,6 +23,7 @@ Todo se convierte al mismo formato, el **snapshot** (`docs/snapshot.md`): tamañ
 - **Interfaz en español, tratando de «usted».**
 - **Sin diseños reales de clientes ni de NIU** en el repositorio, datos de prueba o caso de estudio. Solo la página de ejemplo y diseños propios.
 - No crear pull requests salvo que se pidan.
+- **Excepción vigente (histórica):** el autor pidió avanzar **todas las fases seguidas, sin esperar visto bueno entre ellas**, y revisar al final. Por eso las Fases 1–9 se hicieron de corrido; la revisión de cada fase queda pendiente y cada cierre dejó dicho qué se asumió. Para cambios futuros vuelve a regir «una fase, alto, visto bueno».
 
 ## Marca del reporte
 
@@ -129,6 +130,14 @@ Lo que queda por debajo de su **tolerancia** es ruido y no se reporta.
 
 **⚠ Estado de la medición:** en este entorno **no había `ANTHROPIC_API_KEY`**, así que la capa se construyó y probó entera con modelos falsos (uno bueno y varios tramposos que inventan ids, cifras y colores, o intentan descartar críticos), pero **no se ha medido a Claude de verdad**. Por eso la IA queda apagada por defecto (D-053). Para decidir: poner la clave en `.env.local` y correr `npm run evals -- --ai` (≈ 40 llamadas de Haiku, centavos de dólar).
 
+## Integración: skill, CLI para otras herramientas y Action
+
+- **`/paridad <enlace del frame> <URL de la página>`** (`.claude/skills/paridad/SKILL.md`): corre `compare` y resume críticos y altos con `summary --json`. Solo la invoca la persona (`disable-model-invocation`), solo puede ejecutar esos dos comandos (`allowed-tools`) y tiene prohibido pedir o mostrar el token.
+- **`paridad summary --dir <carpeta> [--json] [--severity …]`**: forma estable (texto o JSON) del resultado para otras herramientas.
+- **`paridad ci --screens paridad.screens.json`**: compara varias pantallas, escribe un reporte por pantalla, `comment.md` (con marca oculta para actualizar en lugar de duplicar) y sale con código 2 si alguna queda bajo `--fail-under`.
+- **Acción de GitHub** (`.github/actions/paridad/`, ejemplo en `docs/examples/paridad-pr.yml`, guía en `docs/github-action.md`): ⚠ **no probada en GitHub real**; sus piezas y su estructura sí tienen pruebas.
+- **`npm run media`** regenera las capturas y el video del reporte (`docs/media/`) con una página con errores reales servida en localhost.
+
 ## Decisiones
 
 Una línea cada una: qué se decidió y por qué.
@@ -206,5 +215,5 @@ Accesible por diseño y **auditado con axe-core** (WCAG 2.1 AA) en cada vista: s
 - [x] **Fase 5** · Evaluaciones
 - [x] **Fase 6** · Capa de IA (⚠ construida y probada con modelos falsos; falta medir con una clave real, ver D-053)
 - [ ] Fase 7 · Reporte
-- [ ] Fase 8 · Integración y skill
-- [ ] Fase 9 · Caso de estudio
+- [x] **Fase 8** · Integración y skill (⚠ la Action no está probada en GitHub real)
+- [x] **Fase 9** · Caso de estudio (borrador en `docs/caso-de-estudio.md`; faltan la anécdota real y la cifra con IA)

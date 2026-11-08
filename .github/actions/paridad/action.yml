@@ -1,0 +1,82 @@
+name: Paridad
+description: Compara cada pantalla de paridad.screens.json con su frame de Figma y deja el puntaje como comentario del pull request.
+
+inputs:
+  screens:
+    description: Archivo con la lista de pantallas (JSON).
+    default: paridad.screens.json
+  fail-under:
+    description: Puntaje mínimo (0-100). Si una pantalla queda por debajo, el paso falla. Vacío = el del archivo, o ninguno.
+    default: ""
+  figma-token:
+    description: Token personal de Figma de solo lectura. Páselo desde un secreto del repositorio.
+    required: true
+  comment:
+    description: "'true' para publicar (o actualizar) el comentario en el pull request."
+    default: "true"
+  github-token:
+    description: Token para comentar en el pull request.
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+
+    - name: Instalar dependencias
+      shell: bash
+      run: npm ci
+
+    - name: Instalar Chromium
+      shell: bash
+      run: npx playwright install --with-deps chromium
+
+    - name: Comparar pantallas
+      id: paridad
+      shell: bash
+      env:
+        FIGMA_TOKEN: ${{ inputs.figma-token }}
+        PARIDAD_SCREENS: ${{ inputs.screens }}
+        PARIDAD_FAIL_UNDER: ${{ inputs.fail-under }}
+      run: |
+        args=(--screens "$PARIDAD_SCREENS" --out out/ci)
+        if [ -n "$PARIDAD_FAIL_UNDER" ]; then args+=(--fail-under "$PARIDAD_FAIL_UNDER"); fi
+        # El comentario se publica aunque falle el puntaje: por eso el código de salida se guarda y se devuelve al final.
+        set +e
+        npm run paridad -- ci "${args[@]}"
+        echo "code=$?" >> "$GITHUB_OUTPUT"
+
+    - name: Guardar los reportes
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: paridad-reportes
+        path: out/ci
+        if-no-files-found: warn
+
+    - name: Comentar en el pull request
+      if: always() && inputs.comment == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const file = 'out/ci/comment.md';
+          if (!fs.existsSync(file)) return core.warning('No hay comentario que publicar (¿falló antes de comparar?).');
+          const body = fs.readFileSync(file, 'utf8');
+          const marker = '<!-- paridad-ci -->';
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+          const previous = comments.find((c) => c.body && c.body.includes(marker));
+          if (previous) await github.rest.issues.updateComment({ owner, repo, comment_id: previous.id, body });
+          else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+
+    - name: Aplicar el resultado
+      shell: bash
+      env:
+        PARIDAD_CODE: ${{ steps.paridad.outputs.code }}
+      run: exit "${PARIDAD_CODE:-0}"

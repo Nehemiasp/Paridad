@@ -7,6 +7,8 @@ import { parseSnapshot } from "@paridad/core";
 import { landing, readFigmaImagesResponse, readFigmaNodesResponse } from "@paridad/fixtures";
 import type { FetchLike } from "@paridad/figma";
 import { loadEnvLocal } from "./env.ts";
+import { cpSync } from "node:fs";
+import { COMMENT_MARKER, ScreensSchema, toComment } from "./ci.ts";
 import { decodePng, encodePng } from "@paridad/visual";
 import type { AiClient, AiRequest } from "@paridad/ai";
 import { run, type Io } from "./main.ts";
@@ -402,5 +404,150 @@ describe("paridad report y --open", () => {
     const io = memoryIo();
     expect(await run(["report", "--dir", dir()], io)).toBe(1);
     expect(io.stderr).toContain("No hay report.json");
+  });
+});
+
+describe("paridad summary", () => {
+  const dir = () => mkdtempSync(join(tmpdir(), "paridad-sum-"));
+  async function reportDir(mutate: (snap: { elements: { id: string; name?: string; parentId: string | null; box: { x: number; y: number } }[] }) => void): Promise<string> {
+    const snap = JSON.parse(readFileSync(join(landing.dir, "page.snapshot.json"), "utf8"));
+    mutate(snap);
+    const work = dir();
+    writeFileSync(join(work, "page.json"), JSON.stringify(snap));
+    writeFileSync(join(work, "page.png"), readFileSync(join(landing.dir, "page.png")));
+    const out = join(work, "out");
+    await run(["compare", "--design", landing.designSnapshot, "--page", join(work, "page.json"), "--out", out, "--no-visual"], memoryIo(), { cwd: work });
+    return out;
+  }
+  const dropButton = (snap: { elements: { id: string; name?: string; parentId: string | null }[] }) => {
+    const btn = snap.elements.find((e) => e.name === "a.btn.btn-primary")!;
+    snap.elements = snap.elements.filter((e) => e.id !== btn.id && e.parentId !== btn.id);
+  };
+
+  it("por defecto lista las críticas y altas con su evidencia", async () => {
+    const out = await reportDir(dropButton);
+    const io = memoryIo();
+    expect(await run(["summary", "--dir", out], io)).toBe(0);
+    expect(io.stdout).toContain("Puntaje de paridad: 85 / 100");
+    expect(io.stdout).toContain("[crítica] Falta en el código");
+    expect(io.stdout).toContain('diseño "presente" · código "ausente"');
+  });
+
+  it("--json da una forma estable para otras herramientas", async () => {
+    const out = await reportDir(dropButton);
+    const io = memoryIo();
+    await run(["summary", "--dir", out, "--json"], io);
+    const j = JSON.parse(io.stdout);
+    expect(j).toMatchObject({ score: 85, counts: { critical: 1, high: 0, medium: 0, low: 0 }, omitted: 0 });
+    expect(j.findings[0]).toMatchObject({ severity: "critical", rule: "missing", expected: "presente", actual: "ausente" });
+    expect(Object.keys(j.findings[0]).sort()).toEqual(["actual", "category", "delta", "designBox", "expected", "id", "pageBox", "property", "rule", "severity", "title", "unit"]);
+  });
+
+  it("--severity pide otras; lo menos grave se cuenta como omitido", async () => {
+    const out = await reportDir((snap) => {
+      const cards = snap.elements.filter((e) => e.name === "article.card").map((e) => e.id);
+      for (const e of snap.elements) if (e.parentId && cards.includes(e.parentId)) e.box.x += 4;
+    });
+    const solo = memoryIo();
+    await run(["summary", "--dir", out], solo);
+    expect(solo.stdout).toContain("No hay hallazgos de las severidades pedidas");
+    expect(solo.stdout).toContain("hallazgos de menor severidad no se listan");
+    const low = memoryIo();
+    await run(["summary", "--dir", out, "--severity", "low"], low);
+    expect(low.stdout).toContain("[baja]");
+  });
+
+  it("errores claros: severidad desconocida y carpeta sin reporte", async () => {
+    const a = memoryIo();
+    expect(await run(["summary", "--dir", dir(), "--severity", "grave"], a)).toBe(1);
+    expect(a.stderr).toContain("Severidad desconocida: grave");
+    const b = memoryIo();
+    expect(await run(["summary", "--dir", dir()], b)).toBe(1);
+    expect(b.stderr).toContain("No hay report.json");
+  });
+});
+
+describe("paridad ci", () => {
+  const dir = () => mkdtempSync(join(tmpdir(), "paridad-ci-"));
+  const nodes = readFigmaNodesResponse();
+  const images = readFigmaImagesResponse();
+  const png = readFileSync(landing.designImage);
+  const body = (data: unknown, bin?: Buffer) => ({ ok: true, status: 200, headers: { get: () => null }, json: async () => data, arrayBuffer: async () => (bin ? (bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength) as ArrayBuffer) : new ArrayBuffer(0)) });
+  const fetchFake: FetchLike = async (url) => (url.includes("/nodes") ? body(nodes) : url.includes("/v1/images/") ? body(images) : url.includes("/variables/") ? { ...body({}), ok: false, status: 403 } : body({}, png));
+
+  /** Una copia de la página de ejemplo con el padding de las tarjetas cambiado: un caso con puntaje menor a 100. */
+  function mutatedPage(): string {
+    const copy = join(dir(), "page");
+    cpSync(landing.pageDir, copy, { recursive: true });
+    const css = readFileSync(join(copy, "styles.css"), "utf8").replace("padding: 16px;\n  background: var(--white);", "padding: 24px;\n  background: var(--white);");
+    writeFileSync(join(copy, "styles.css"), css);
+    return pathToFileURL(join(copy, "index.html")).href;
+  }
+  const screens = (list: object[], extra: object = {}) => {
+    const file = join(dir(), "paridad.screens.json");
+    writeFileSync(file, JSON.stringify({ screens: list, ...extra }));
+    return file;
+  };
+  const good = { name: "Inicio · escritorio", figma: landing.figmaUrl, page: pathToFileURL(landing.pageIndex).href };
+
+  it("compara cada pantalla y deja un reporte por pantalla y el comentario del pull request", async () => {
+    const out = dir();
+    const io = memoryIo();
+    const code = await run(["ci", "--screens", screens([good]), "--out", out], io, { cwd: dir(), env: { FIGMA_TOKEN: "t" }, fetch: fetchFake });
+    expect(io.stderr).toBe("");
+    expect(code).toBe(0);
+    expect(existsSync(join(out, "inicio-escritorio", "report.json"))).toBe(true);
+    const comment = readFileSync(join(out, "comment.md"), "utf8");
+    expect(comment.startsWith(COMMENT_MARKER)).toBe(true);
+    expect(comment).toContain("| Inicio · escritorio | **100**");
+    expect(JSON.parse(readFileSync(join(out, "results.json"), "utf8")).results[0]).toMatchObject({ score: 100, error: null });
+  });
+
+  it("una pantalla por debajo del puntaje mínimo hace fallar (código 2) y el comentario lo marca", async () => {
+    const out = dir();
+    const io = memoryIo();
+    const code = await run(["ci", "--screens", screens([{ ...good, page: mutatedPage() }], { failUnder: 99 }), "--out", out], io, { cwd: dir(), env: { FIGMA_TOKEN: "t" }, fetch: fetchFake });
+    expect(code).toBe(2);
+    expect(io.stderr).toContain("por debajo del puntaje mínimo (99)");
+    const comment = readFileSync(join(out, "comment.md"), "utf8");
+    expect(comment).toContain("❌");
+    expect(comment).toContain("Puntaje mínimo exigido: **99**");
+  });
+
+  it("--fail-under de la línea de comandos manda sobre el del archivo", async () => {
+    const code = await run(["ci", "--screens", screens([good], { failUnder: 100 }), "--out", dir(), "--fail-under", "50"], memoryIo(), { cwd: dir(), env: { FIGMA_TOKEN: "t" }, fetch: fetchFake });
+    expect(code).toBe(0);
+  });
+
+  it("si una pantalla falla (p. ej. enlace sin frame) se informa y las demás se comparan igual", async () => {
+    const out = dir();
+    const io = memoryIo();
+    const code = await run(["ci", "--screens", screens([{ ...good, name: "Rota", figma: "https://figma.com/design/K/x" }, good]), "--out", out], io, { cwd: dir(), env: { FIGMA_TOKEN: "t" }, fetch: fetchFake });
+    expect(code).toBe(1);
+    const comment = readFileSync(join(out, "comment.md"), "utf8");
+    expect(comment).toContain("| Rota | ⚠ error");
+    expect(comment).toContain("no indica un frame");
+    expect(comment).toContain("| Inicio · escritorio | **100**");
+  });
+
+  it("valida el archivo de pantallas con mensajes en español", async () => {
+    const bad = join(dir(), "s.json");
+    writeFileSync(bad, JSON.stringify({ screens: [] }));
+    const io = memoryIo();
+    expect(await run(["ci", "--screens", bad], io, { cwd: dir() })).toBe(1);
+    expect(io.stderr).toContain("no es válido");
+    const dup = memoryIo();
+    expect(await run(["ci", "--screens", screens([good, { ...good, name: "INICIO — escritorio" }])], dup, { cwd: dir() })).toBe(1);
+    expect(dup.stderr).toContain("se llaman parecido");
+    const none = memoryIo();
+    expect(await run(["ci", "--screens", join(dir(), "no-existe.json")], none, { cwd: dir() })).toBe(1);
+    expect(none.stderr).toContain("Cree un archivo");
+  });
+
+  it("el comentario escapa lo que viene de la página y funciona sin puntaje mínimo", () => {
+    const text = toComment([{ name: "A", dir: "x", score: 90, counts: { critical: 0, high: 1, medium: 0, low: 0 }, topFindings: ["Texto «a | b <script>»"], error: null }], undefined);
+    expect(text).toContain("a \\| b &lt;script>");
+    expect(text).not.toContain("Puntaje mínimo exigido");
+    expect(ScreensSchema.safeParse({ screens: [{ name: "x", figma: "f", page: "p" }] }).success).toBe(true);
   });
 });

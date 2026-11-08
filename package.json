@@ -18,12 +18,14 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "schema:json": "tsx scripts/generate-json-schema.ts",
     "paridad": "node apps/cli/bin/paridad.mjs",
-    "evals": "npm run evals -w @paridad/evals --"
+    "evals": "npm run evals -w @paridad/evals --",
+    "media": "tsx scripts/make-media.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "tsx": "^4.23.15",
     "typescript": "~5.9.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "yaml": "^2.9.1"
   }
 }
