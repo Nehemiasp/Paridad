@@ -41,6 +41,7 @@ Motivo de cuadros con píldora azul.
 | `npm run schema:json` | Regenera `docs/snapshot.schema.json` desde Zod. |
 | `npm run paridad -- capture --page <url> --width 1440` | Captura una página → `snapshot.json` + `screenshot.png` (por defecto en `out/capture`). |
 | `npm run paridad -- compare --design d.json --page p.json` | Compara dos snapshots → `report.json` + resumen. Con `--figma <url> --page <url>` hace todo: lee Figma, captura la página y compara. `--fail-under 90` sale con código 2 si el puntaje es menor. |
+| `npm run paridad -- compare … --ai` | Agrega la capa de IA (Claude, visión): agrupa hallazgos, propone descartar ruido evidente y redacta con sugerencia de CSS. Apagada por defecto; requiere `ANTHROPIC_API_KEY`. `--ai-model`, `--ai-max-cost 0.05`, `--no-ai-images`; `--ai-simulated` prueba la tubería sin modelo. |
 | `npm run evals` | Mide si Paridad acierta: aplica errores conocidos a la página de ejemplo y reporta detección, precisión y severidad por tipo de error, los falsos positivos de la página de control y el cambio respecto a la corrida anterior. Sale con código 1 si no se cumplen las metas. `-- --validate` revisa las mutaciones propuestas sin abrir el navegador; `-- --only a,b` corre solo esas. |
 | `npm run paridad -- figma --url <frame>` | Lee un frame de Figma → `snapshot.json` + `design.png` (por defecto en `out/design`). Requiere `FIGMA_TOKEN` en `.env.local`. |
 
@@ -56,7 +57,7 @@ packages/figma/     API REST de Figma: frame → snapshot, con caché           
 packages/visual/    diferencia de píxeles (pixelmatch), regiones y mapa de calor                         [existe]
 packages/evals/     mutaciones (datos JSON), medición de aciertos, tabla y comparación entre corridas    [existe]
 .claude/agents/     `mutation-proposer`: subagente que propone mutaciones nuevas como datos                [existe]
-packages/ai/        capa opcional con Claude                                                             [Fase 6]
+packages/ai/        capa opcional con Claude: agrupa, descarta ruido, redacta; valida contra la evidencia [existe]
 apps/cli/           `paridad capture|figma|compare …` (`capture`, `figma` y `compare`; `--no-visual` omite píxeles)  [existe]
 apps/report/        reporte web (Next.js)                                                                [Fase 7]
 ```
@@ -113,6 +114,18 @@ Lo que queda por debajo de su **tolerancia** es ruido y no se reporta.
 
 **Limitación conocida (caso que falla):** `enlace-extra-navegacion` — al agregar un cuarto enlace, la navegación centrada corre los tres anteriores *y* aparece contenido nuevo en la misma región de píxeles; ya no es una «copia desplazada» pura y queda como diferencia visual sin clasificar (falso positivo medio). Arreglarlo exigiría separar la región en partes (lo que se movió / lo nuevo). No se ajustó la herramienta para esconderlo: es justo el tipo de hallazgo que da valor a medir con casos independientes.
 
+## Capa de IA (opcional, medida, apagada por defecto)
+
+`--ai` pasa el reporte del motor por Claude (por defecto **Haiku 5.5**, el más económico; configurable con `--ai-model`) con salidas estructuradas (JSON validado por esquema). Hace tres cosas: **agrupar** hallazgos con causa común («todo el bloque de tarjetas está 4 px más abajo» en vez de 12), **proponer descartar ruido evidente** y **redactar** cada grupo para el desarrollador con una corrección en CSS.
+
+**La IA no inventa hallazgos.** Solo ve lo que midió el motor, y su respuesta se valida (`packages/ai/src/ground.ts`): cada grupo debe citar hallazgos que existen (sin repetir), y cada cifra y cada color de sus textos debe aparecer en la evidencia de lo que cita; si no, el grupo se **rechaza** y los hallazgos quedan como los redactó el motor. No se pueden descartar hallazgos críticos, faltantes/sobrantes ni fuente caída, y si descarta más de la mitad se desconfía de todos sus descartes. La sección `ai` del reporte **no cambia** `findings` ni el puntaje: solo suma agrupación, descartes (que el reporte pliega, no borra) y su costo.
+
+**Control de costo:** las imágenes se envían **recortadas** a las regiones relevantes (hasta 3, lado mayor ≤ 900 px) en lugar de la página entera; las respuestas se guardan en **caché local** (`.paridad-cache/ai/`; la misma pregunta no se paga dos veces); hay un **tope por corrida** (`--ai-max-cost`, 0.05 USD; se estima antes de llamar y, si no cabe, no se llama); y el **costo real** (de los tokens que informa la API) queda en el reporte. Si la llamada falla o el modelo declina, el reporte sigue completo y sin IA.
+
+**Evaluación con y sin IA:** `npm run evals -- --ai` repite las mismas mutaciones con la IA aplicada y compara. Mide **precisión** (un descarte de un falso positivo la sube; uno de un acierto pierde detección y se cuenta como *descarte dañino*) y **claridad** (cuántos elementos tiene que leer una persona: grupos + hallazgos sueltos, frente a la lista original). **Regla de decisión (`decideAiDefault`):** la IA se enciende por defecto solo si mejora la precisión ≥ 2 pts **o** la claridad ≥ 20 %, sin perder detección, sin ocultar ningún error real y con ≤ 20 % de lo que devuelve rechazado; si no, queda apagada. Si no mejora, eso también es un resultado válido para el caso de estudio.
+
+**⚠ Estado de la medición:** en este entorno **no había `ANTHROPIC_API_KEY`**, así que la capa se construyó y probó entera con modelos falsos (uno bueno y varios tramposos que inventan ids, cifras y colores, o intentan descartar críticos), pero **no se ha medido a Claude de verdad**. Por eso la IA queda apagada por defecto (D-053). Para decidir: poner la clave en `.env.local` y correr `npm run evals -- --ai` (≈ 40 llamadas de Haiku, centavos de dólar).
+
 ## Decisiones
 
 Una línea cada una: qué se decidió y por qué.
@@ -167,6 +180,12 @@ Una línea cada una: qué se decidió y por qué.
 - **D-048 · Se mide también el ruido** — un cambio de 0.2 px o ΔE 0.3 no debe reportarse. Sus diferencias de píxeles se clasifican como «tolerancia» (un elemento emparejado sin hallazgos) o «desplazamiento», nunca como error.
 - **D-049 · Lo que enseñó la primera corrida** — (a) una diferencia de píxeles puede ser una *copia desplazada* del diseño: se reconoce probando desplazamientos y es consecuencia, no error; (b) las cajas hijas se emparejan también por posición relativa a su padre; (c) los textos que ya son pareja pesan más que la geometría al emparejar cajas, con penalización si contradicen; (d) los umbrales de severidad redondean a 0.1 px; (e) dos huecos seguidos que cambian lo mismo son un `gap` de CSS: se reporta el hueco, no el corrimiento del elemento del extremo.
 - **D-050 · La clasificación de una región visual sigue un orden** — una regla que la explique › el alto de la página › un desplazamiento › estar dentro de la tolerancia › sin clasificar. Las imágenes emparejadas no entran en «tolerancia»: ninguna regla revisa sus píxeles.
+- **D-051 · Salidas estructuradas con esquema simple, validadas dos veces** — el SDK valida el JSON contra un esquema de Zod (sin opcionales: «sin corrección» es una cadena vacía) y después `ground()` lo valida contra los hallazgos reales; el esquema asegura la forma, la validación asegura la verdad.
+- **D-052 · Una cifra solo es válida si sale de la evidencia que el grupo cita** — o del conteo del grupo, o de la diferencia entre lo *esperado* y lo *obtenido* de un mismo hallazgo (el «4 px» entre 16 y 20). Una versión inicial aceptaba la diferencia entre *cualquier* par de cifras de la evidencia (incluidas las cajas) y dejaba pasar un «24 px» inventado; una prueba lo descubrió y se acotó.
+- **D-053 · La IA se queda apagada por defecto** — la especificación pide encenderla solo si mejora la precisión o la claridad, y eso no se ha medido con un modelo real. La decisión es código (`decideAiDefault`), no opinión: se recalcula cada vez que se corre `evals --ai`. El modelo simulado nunca decide.
+- **D-054 · Se mide el daño además de la mejora** — descartar un falso positivo sube la precisión, pero descartar un acierto esconde un error real; por eso se cuentan los «descartes dañinos» y uno solo basta para dejar la IA apagada.
+- **D-055 · El prompt trata hallazgos e imágenes como datos, no como instrucciones** — los títulos de los hallazgos incluyen texto de la página (que puede decir «ignore las reglas»); el sistema lo declara y, sobre todo, nada de lo que el modelo diga puede cambiar `findings` ni el puntaje.
+- **D-056 · La clave nunca sale** — se lee de `.env.local`/entorno, no se escribe en la caché ni en los errores (se reemplaza por `***`), y el prompt no incluye rutas de archivos.
 
 ## Estado de fases
 
@@ -176,7 +195,7 @@ Una línea cada una: qué se decidió y por qué.
 - [x] **Fase 3** · Motor de comparación
 - [x] **Fase 4** · Diferencia visual
 - [x] **Fase 5** · Evaluaciones
-- [ ] Fase 6 · Capa de IA
+- [x] **Fase 6** · Capa de IA (⚠ construida y probada con modelos falsos; falta medir con una clave real, ver D-053)
 - [ ] Fase 7 · Reporte
 - [ ] Fase 8 · Integración y skill
 - [ ] Fase 9 · Caso de estudio

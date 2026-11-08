@@ -15,6 +15,7 @@
     "@paridad/fixtures": "^0.0.0"
   },
   "dependencies": {
+    "@paridad/ai": "^0.0.0",
     "@paridad/capture": "^0.0.0",
     "@paridad/core": "^0.0.0",
     "@paridad/visual": "^0.0.0",

@@ -1,3 +1,4 @@
+import type { AiDecision, AiEvalResult } from "./ai-eval.ts";
 import type { Metrics, MutationResult, TypeMetrics } from "./metrics.ts";
 import { pct, type Goals } from "./metrics.ts";
 
@@ -9,6 +10,8 @@ export interface EvalRun {
   results: MutationResult[];
   /** Mutaciones propuestas que no pasaron la validación (no se corrieron). */
   rejected: { source: string; reason: string }[];
+  /** Presente si la corrida incluyó la comparación con IA. */
+  ai?: { mode: AiEvalResult["mode"]; model: string; metrics: Metrics; totals: AiEvalResult["totals"]; decision: AiDecision };
 }
 
 const pad = (s: string, n: number): string => (s.length >= n ? s : s + " ".repeat(n - s.length));

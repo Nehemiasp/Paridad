@@ -4,6 +4,7 @@ import { capturePage, writeCapture } from "@paridad/capture";
 import { assertSnapshot, attachVisual, compare, SEVERITIES, type Box, type Report, type Snapshot } from "@paridad/core";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
 import { visualDiff } from "@paridad/visual";
+import { AnswerCache, attachAi, createAnthropicClient, createSimulatedClient, explainReport, summarizeAi, DEFAULT_MODEL, type AiClient } from "@paridad/ai";
 import { loadConfigFile } from "./config-file.ts";
 import { loadEnvLocal } from "./env.ts";
 import { buildIgnoreZones, parsePositiveInt, parseScale } from "./options.ts";
@@ -13,6 +14,8 @@ export interface CompareIo {
   err: (text: string) => void;
 }
 export interface CompareDeps {
+  /** Sustituye al modelo en las pruebas. */
+  aiClient?: AiClient;
   fetch?: FetchLike;
   env?: Record<string, string | undefined>;
   cwd?: string;
@@ -72,6 +75,14 @@ export interface CompareOptions {
   name?: string;
   /** `false` con --no-visual. */
   visual?: boolean;
+  /** Capa de IA con Claude (apagada por defecto). */
+  ai?: boolean;
+  /** Prueba la tubería de la IA sin llamar a ningún modelo (no mide a Claude). */
+  aiSimulated?: boolean;
+  aiModel?: string;
+  aiMaxCost?: string;
+  /** `false` con --no-ai-images. */
+  aiImages?: boolean;
 }
 
 /** `paridad compare`: dos modos, con archivos snapshot o la tubería completa (Figma + página). */
@@ -161,9 +172,33 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
       io.err("Aviso: falta la imagen del diseño o la de la página; se omite la diferencia visual.\n");
     }
   }
+  // ── Capa de IA (Fase 6), solo con --ai ─────────────────────────────────
+  let aiText = "";
+  if (opts.ai || opts.aiSimulated) {
+    const simulated = opts.aiSimulated === true;
+    let client = deps.aiClient;
+    if (!client) {
+      if (simulated) client = createSimulatedClient();
+      else {
+        const env = deps.env ?? loadEnvLocal(cwd);
+        if (!env.ANTHROPIC_API_KEY) {
+          throw new Error("Falta la clave de Anthropic para --ai. Defina ANTHROPIC_API_KEY en .env.local (vea .env.example), o use --ai-simulated para probar la tubería sin llamar a ningún modelo.");
+        }
+        client = createAnthropicClient({ apiKey: env.ANTHROPIC_API_KEY });
+      }
+    }
+    const maxCost = opts.aiMaxCost === undefined ? 0.05 : Number(opts.aiMaxCost);
+    if (!Number.isFinite(maxCost) || maxCost < 0) throw new Error(`--ai-max-cost debe ser un número de dólares ≥ 0 (recibí «${opts.aiMaxCost}»).`);
+    const images = opts.aiImages !== false && designImage && pageImage && existsSync(designImage) && existsSync(pageImage) ? { design: { png: readFileSync(designImage), scale: design.canvas.scale }, page: { png: readFileSync(pageImage), scale: page.canvas.scale } } : undefined;
+    const ai = await explainReport(report, { client, model: opts.aiModel ?? DEFAULT_MODEL, mode: simulated ? "simulado" : "claude", maxCostUsd: maxCost, cache: new AnswerCache(join(cwd, ".paridad-cache", "ai")), ...(images ? { images } : {}) });
+    report = attachAi(report, ai);
+    aiText = summarizeAi(ai);
+  }
+
   const reportPath = join(outDir, "report.json");
   writeFileSync(reportPath, JSON.stringify(report, null, 2) + "\n");
   io.out("\n" + summarize(report));
+  if (aiText) io.out("\n" + aiText);
   io.out(`\nReporte: ${reportPath}\n`);
 
   if (opts.failUnder !== undefined) {

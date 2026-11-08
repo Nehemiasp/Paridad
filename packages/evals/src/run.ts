@@ -54,20 +54,25 @@ export async function runMutation(mutation: Mutation, browser: Browser, config?:
   return { result: evaluateMutation(mutation, report, page, comparedElements), report, page };
 }
 
-/** Corre la lista completa (siempre con el control primero). */
-export async function runAll(mutations: Mutation[], options: RunOptions = {}): Promise<MutationResult[]> {
+/** Corre la lista completa (siempre con el control primero) y conserva el reporte y la página de cada una. */
+export async function runAllDetailed(mutations: Mutation[], options: RunOptions = {}): Promise<{ mutation: Mutation; run: MutationRun }[]> {
   const own = !options.browser;
   const browser = options.browser ?? (await chromium.launch());
   try {
     const all = [CONTROL, ...mutations.filter((m) => m.id !== CONTROL_ID)];
-    const out: MutationResult[] = [];
+    const out: { mutation: Mutation; run: MutationRun }[] = [];
     for (const [i, m] of all.entries()) {
-      const { result } = await runMutation(m, browser, options.config);
-      out.push(result);
-      options.onProgress?.(result, i + 1, all.length);
+      const run = await runMutation(m, browser, options.config);
+      out.push({ mutation: m, run });
+      options.onProgress?.(run.result, i + 1, all.length);
     }
     return out;
   } finally {
     if (own) await browser.close();
   }
+}
+
+/** Corre la lista completa (siempre con el control primero). */
+export async function runAll(mutations: Mutation[], options: RunOptions = {}): Promise<MutationResult[]> {
+  return (await runAllDetailed(mutations, options)).map((x) => x.run.result);
 }

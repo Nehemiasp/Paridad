@@ -1,6 +1,7 @@
 import { Command, CommanderError } from "commander";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { AiClient } from "@paridad/ai";
 import { capturePage, writeCapture } from "@paridad/capture";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
 import { runCompare, type CompareOptions } from "./compare.ts";
@@ -19,6 +20,8 @@ const defaultIo: Io = {
 
 /** Dependencias sustituibles en pruebas (red, entorno, carpeta de trabajo). */
 export interface Deps {
+  /** Sustituye al modelo de la IA en las pruebas. */
+  aiClient?: AiClient;
   fetch?: FetchLike;
   env?: Record<string, string | undefined>;
   cwd?: string;
@@ -130,6 +133,11 @@ export function buildProgram(io: Io = defaultIo, deps: Deps = {}): Command {
     .option("--scale <1|2>", "escala de las imágenes", "1")
     .option("--refresh", "ignorar la caché de Figma")
     .option("--no-visual", "no hacer la diferencia por píxeles")
+    .option("--ai", "capa de IA con Claude: agrupa hallazgos, descarta ruido evidente y redacta (apagada por defecto; requiere ANTHROPIC_API_KEY)")
+    .option("--ai-simulated", "prueba la tubería de la IA sin llamar a ningún modelo (no mide a Claude)")
+    .option("--ai-model <id>", "modelo de la IA (por defecto claude-haiku-5-5, el más económico)")
+    .option("--ai-max-cost <usd>", "tope de costo de la IA en dólares por corrida (por defecto 0.05)")
+    .option("--no-ai-images", "no enviar imágenes recortadas a la IA")
     .option("--fail-under <puntaje>", "salir con código 2 si el puntaje es menor (útil en CI)")
     .option("--name <texto>", "nombre de la página en el reporte")
     .option("--ignore-selector <css>", "zona a ignorar por selector CSS (se puede repetir)", collect)

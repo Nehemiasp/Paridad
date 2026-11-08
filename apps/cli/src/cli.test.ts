@@ -8,6 +8,7 @@ import { landing, readFigmaImagesResponse, readFigmaNodesResponse } from "@parid
 import type { FetchLike } from "@paridad/figma";
 import { loadEnvLocal } from "./env.ts";
 import { decodePng, encodePng } from "@paridad/visual";
+import type { AiClient, AiRequest } from "@paridad/ai";
 import { run, type Io } from "./main.ts";
 import { buildIgnoreZones, parsePositiveInt, parseRect, parseScale } from "./options.ts";
 
@@ -246,5 +247,114 @@ describe("paridad compare", () => {
     expect(code).toBe(0);
     expect(io.stdout).toContain("Puntaje de paridad: 100 / 100");
     for (const f of ["design/snapshot.json", "design/design.png", "page/snapshot.json", "page/screenshot.png", "report.json"]) expect(existsSync(join(out, f)), f).toBe(true);
+  });
+});
+
+describe("paridad compare --ai", () => {
+  const dir = () => mkdtempSync(join(tmpdir(), "paridad-ai-"));
+  const designFile = landing.designSnapshot;
+  const pageFile = join(landing.dir, "page.snapshot.json");
+
+  /** Una página con varios hallazgos con una causa común: el padding de las tarjetas. */
+  function paddingPage(): string {
+    const snap = JSON.parse(readFileSync(pageFile, "utf8"));
+    const cards = snap.elements.filter((e: { name?: string }) => e.name === "article.card").map((e: { id: string }) => e.id);
+    for (const e of snap.elements) if (cards.includes(e.parentId)) ((e.box.x += 4), (e.box.y += 4));
+    const work = dir();
+    const out = join(work, "page.json");
+    writeFileSync(out, JSON.stringify(snap));
+    writeFileSync(join(work, "page.png"), readFileSync(join(landing.dir, "page.png"))); // la imagen que nombra el snapshot
+    return out;
+  }
+  const modelThatGroups = (): { client: AiClient; calls: AiRequest[] } => {
+    const calls: AiRequest[] = [];
+    return {
+      calls,
+      client: {
+        async complete(req) {
+          calls.push(req);
+          const text = req.content[0]!.type === "text" ? (req.content[0] as { text: string }).text : "";
+          const ids = (JSON.parse(text.slice(text.indexOf("{"))) as { hallazgos: { id: string; regla: string }[] }).hallazgos.filter((h) => h.regla === "position").map((h) => h.id);
+          return { output: { groups: [{ title: "El padding de las tarjetas es mayor", explanation: "Hay 20 px donde el diseño pide 16 px.", finding_ids: ids, css_fix: "padding: 16px;" }], discarded: [] }, model: req.model, usage: { inputTokens: 3000, outputTokens: 300, cacheReadTokens: 0 } };
+        },
+      },
+    };
+  };
+
+  it("por defecto la IA está apagada: no se llama a nadie y el reporte no trae sección ai", async () => {
+    const out = dir();
+    const { client, calls } = modelThatGroups();
+    const io = memoryIo();
+    expect(await run(["compare", "--design", designFile, "--page", paddingPage(), "--out", out], io, { cwd: dir(), aiClient: client })).toBe(0);
+    expect(calls).toHaveLength(0);
+    expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).ai).toBeUndefined();
+    expect(io.stdout).not.toContain("IA (");
+  });
+
+  it("con --ai agrupa, muestra el costo y guarda la sección ai sin tocar los hallazgos", async () => {
+    const out = dir();
+    const base = dir();
+    await run(["compare", "--design", designFile, "--page", paddingPage(), "--out", base], memoryIo(), { cwd: dir() });
+    const { client, calls } = modelThatGroups();
+    const io = memoryIo();
+    const code = await run(["compare", "--design", designFile, "--page", paddingPage(), "--out", out, "--ai"], io, { cwd: dir(), aiClient: client });
+    expect(io.stderr).toBe("");
+    expect(code).toBe(0);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.model).toBe("claude-haiku-5-5");
+    expect(io.stdout).toContain("IA (claude-haiku-5-5): 1 grupos");
+    expect(io.stdout).toContain("padding: 16px;");
+    const withAi = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    const without = JSON.parse(readFileSync(join(base, "report.json"), "utf8"));
+    expect(withAi.ai.groups).toHaveLength(1);
+    expect(withAi.ai.costUsd).toBeCloseTo((3000 * 0.1 + 300 * 0.5) / 1_000_000, 8);
+    expect(withAi.findings).toEqual(without.findings);
+    expect(withAi.score).toEqual(without.score);
+  });
+
+  it("envía imágenes recortadas por defecto, y --no-ai-images solo texto", async () => {
+    const withImages = modelThatGroups();
+    await run(["compare", "--design", designFile, "--page", paddingPage(), "--out", dir(), "--ai"], memoryIo(), { cwd: dir(), aiClient: withImages.client });
+    expect(withImages.calls[0]!.content.some((c) => c.type === "image")).toBe(true);
+    const textOnly = modelThatGroups();
+    await run(["compare", "--design", designFile, "--page", paddingPage(), "--out", dir(), "--ai", "--no-ai-images"], memoryIo(), { cwd: dir(), aiClient: textOnly.client });
+    expect(textOnly.calls[0]!.content.every((c) => c.type === "text")).toBe(true);
+  });
+
+  it("sin ANTHROPIC_API_KEY explica cómo conseguirla y ofrece el modo simulado", async () => {
+    const io = memoryIo();
+    expect(await run(["compare", "--design", designFile, "--page", pageFile, "--out", dir(), "--ai"], io, { cwd: dir(), env: {} })).toBe(1);
+    expect(io.stderr).toContain("ANTHROPIC_API_KEY");
+    expect(io.stderr).toContain("--ai-simulated");
+  });
+
+  it("--ai-simulated prueba la tubería sin red y se marca como simulada", async () => {
+    const out = dir();
+    const io = memoryIo();
+    expect(await run(["compare", "--design", designFile, "--page", paddingPage(), "--out", out, "--ai-simulated"], io, { cwd: dir(), env: {} })).toBe(0);
+    expect(io.stdout).toContain("SIMULADA, no mide a Claude");
+    expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).ai).toMatchObject({ mode: "simulado", costUsd: 0 });
+  });
+
+  it("un tope de costo muy bajo evita la llamada y el reporte sigue completo", async () => {
+    const { client, calls } = modelThatGroups();
+    const io = memoryIo();
+    expect(await run(["compare", "--design", designFile, "--page", paddingPage(), "--out", dir(), "--ai", "--ai-max-cost", "0.0000001"], io, { cwd: dir(), aiClient: client })).toBe(0);
+    expect(calls).toHaveLength(0);
+    expect(io.stdout).toContain("supera el tope");
+    await expect(run(["compare", "--design", designFile, "--page", pageFile, "--out", dir(), "--ai", "--ai-max-cost", "-1"], memoryIo(), { cwd: dir(), aiClient: client })).resolves.toBe(1);
+  });
+
+  it("la segunda corrida con lo mismo sale de la caché local: costo cero", async () => {
+    const cwd = dir();
+    const page = paddingPage();
+    const { client, calls } = modelThatGroups();
+    await run(["compare", "--design", designFile, "--page", page, "--out", dir(), "--ai", "--no-ai-images"], memoryIo(), { cwd, aiClient: client });
+    const out = dir();
+    const io = memoryIo();
+    await run(["compare", "--design", designFile, "--page", page, "--out", out, "--ai", "--no-ai-images"], io, { cwd, aiClient: client });
+    expect(calls).toHaveLength(1);
+    expect(io.stdout).toContain("(caché)");
+    expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).ai).toMatchObject({ cacheHit: true, costUsd: 0 });
   });
 });

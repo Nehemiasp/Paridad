@@ -1,0 +1,22 @@
+{
+  "name": "@paridad/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project @paridad/ai",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@paridad/core": "^0.0.0",
+    "@paridad/visual": "^0.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@paridad/fixtures": "^0.0.0"
+  }
+}
