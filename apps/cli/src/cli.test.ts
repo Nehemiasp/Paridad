@@ -7,6 +7,7 @@ import { parseSnapshot } from "@paridad/core";
 import { landing, readFigmaImagesResponse, readFigmaNodesResponse } from "@paridad/fixtures";
 import type { FetchLike } from "@paridad/figma";
 import { loadEnvLocal } from "./env.ts";
+import { decodePng, encodePng } from "@paridad/visual";
 import { run, type Io } from "./main.ts";
 import { buildIgnoreZones, parsePositiveInt, parseRect, parseScale } from "./options.ts";
 
@@ -155,6 +156,40 @@ describe("paridad compare", () => {
     expect(report.summary.total).toBe(0);
     expect(report.design.imagePath).toMatch(/design\.png$/);
     expect(report.page.imagePath).toMatch(/page\.png$/);
+  });
+
+  it("la diferencia visual de la página de control es cero y deja el mapa de calor", async () => {
+    const out = dir();
+    const io = memoryIo();
+    expect(await run(["compare", "--design", designFile, "--page", pageFile, "--out", out], io, { cwd: dir() })).toBe(0);
+    expect(io.stdout).toContain("Diferencia visual: 0.00 % de los píxeles · 0 regiones");
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    expect(report.visual).toMatchObject({ diffPixels: 0, heatmapPath: "heatmap.png", regions: [] });
+    expect(existsSync(join(out, "heatmap.png"))).toBe(true);
+  });
+
+  it("una mancha en la imagen de la página que ninguna regla explica queda como «sin clasificar»", async () => {
+    const work = dir();
+    const img = decodePng(readFileSync(join(landing.dir, "page.png")));
+    for (let y = 150; y < 250; y++) for (let x = 1000; x < 1200; x++) img.data.set([200, 30, 30, 255], (y * img.width + x) * 4); // zona vacía del hero
+    writeFileSync(join(work, "page.png"), encodePng(img));
+    writeFileSync(join(work, "page.json"), readFileSync(pageFile));
+    const out = join(work, "out");
+    const io = memoryIo();
+    expect(await run(["compare", "--design", designFile, "--page", join(work, "page.json"), "--out", out], io, { cwd: work })).toBe(0);
+    expect(io.stdout).toContain("1 región (1 sin clasificar)");
+    expect(io.stdout).toContain("1 media"); // 1,5 % del lienzo: «media», no sale en el resumen de críticos y altos
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    expect(report.visual.regions[0]).toMatchObject({ classified: false, box: { x: 1000, y: 150, width: 200, height: 100 } });
+    expect(report.findings[0]).toMatchObject({ rule: "visual-unclassified", category: "visual" });
+  });
+
+  it("--no-visual la omite", async () => {
+    const out = dir();
+    const io = memoryIo();
+    expect(await run(["compare", "--design", designFile, "--page", pageFile, "--out", out, "--no-visual"], io, { cwd: dir() })).toBe(0);
+    expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).visual).toBeUndefined();
+    expect(existsSync(join(out, "heatmap.png"))).toBe(false);
   });
 
   it("resume los críticos y altos, y --fail-under sale con código 2", async () => {

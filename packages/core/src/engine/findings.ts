@@ -35,6 +35,8 @@ export const FindingSchema = z.object({
   design: ElementRefSchema.optional(),
   page: ElementRefSchema.optional(),
   evidence: EvidenceSchema,
+  /** Región de la diferencia visual (para los hallazgos que no corresponden a un elemento). */
+  region: z.object({ id: z.string(), box: BoxSchema }).optional(),
   /** Otros elementos afectados (descendientes de algo que falta, textos con la misma fuente caída…). */
   related: z.array(z.string()).optional(),
 });
@@ -67,4 +69,5 @@ export const CATEGORY_OF_RULE: Record<z.infer<typeof RuleIdSchema>, z.infer<type
   "canvas-size": "página",
   "page-overflow": "página",
   "page-height": "página",
+  "visual-unclassified": "visual",
 };

@@ -129,6 +129,7 @@ export function buildProgram(io: Io = defaultIo, deps: Deps = {}): Command {
     .option("--height <px>", "alto de la ventana", "900")
     .option("--scale <1|2>", "escala de las imágenes", "1")
     .option("--refresh", "ignorar la caché de Figma")
+    .option("--no-visual", "no hacer la diferencia por píxeles")
     .option("--fail-under <puntaje>", "salir con código 2 si el puntaje es menor (útil en CI)")
     .option("--name <texto>", "nombre de la página en el reporte")
     .option("--ignore-selector <css>", "zona a ignorar por selector CSS (se puede repetir)", collect)

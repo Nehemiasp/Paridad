@@ -11,3 +11,4 @@ export { matchElements, type MatchResult, type Pair } from "./engine/match.ts";
 export { SnapshotIndex } from "./engine/geometry.ts";
 export { contrastRatio, deltaE2000, hexToRgba, relativeLuminance, effectiveBackground } from "./engine/color.ts";
 export { textSimilarity } from "./engine/similarity.ts";
+export { attachVisual, type RawVisual } from "./engine/visual.ts";

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BoxSchema } from "../snapshot/schema.ts";
 import { CategorySchema, SeveritySchema } from "./config.ts";
 import { FindingSchema } from "./findings.ts";
 import { ScoreSchema } from "./score.ts";
@@ -12,6 +13,32 @@ const SideSchema = z.object({
   snapshotPath: z.string().optional(),
   imagePath: z.string().optional(),
 });
+
+const VisualRegionSchema = z.object({
+  id: z.string(),
+  /** px CSS, coordenadas del lienzo alineado. */
+  box: BoxSchema,
+  diffPixels: z.number().int(),
+  /** Píxeles distintos / área de la región. */
+  ratio: z.number(),
+  /** Hallazgos de las reglas que explican esta región (vacío = sin clasificar). */
+  findingIds: z.array(z.string()),
+  classified: z.boolean(),
+});
+
+/** Resultado de la diferencia por píxeles, cruzado con los hallazgos. */
+export const VisualSchema = z.object({
+  /** Ruta del mapa de calor, relativa al reporte. */
+  heatmapPath: z.string().optional(),
+  aligned: z.object({ width: z.number(), height: z.number(), scale: z.number() }),
+  diffPixels: z.number().int(),
+  totalPixels: z.number().int(),
+  ignoredPixels: z.number().int(),
+  diffRatio: z.number(),
+  widthMismatch: z.boolean(),
+  regions: z.array(VisualRegionSchema),
+});
+export type Visual = z.infer<typeof VisualSchema>;
 
 /** El reporte que produce `compare`: hallazgos con evidencia, puntaje y cómo se emparejó todo. */
 export const ReportSchema = z.object({
@@ -33,5 +60,7 @@ export const ReportSchema = z.object({
     ignoredInPage: z.number().int(),
   }),
   findings: z.array(FindingSchema),
+  /** Presente si se comparó también por píxeles (Fase 4). */
+  visual: VisualSchema.optional(),
 });
 export type Report = z.infer<typeof ReportSchema>;

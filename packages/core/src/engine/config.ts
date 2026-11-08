@@ -4,7 +4,7 @@ export const SeveritySchema = z.enum(["critical", "high", "medium", "low"]);
 export type Severity = z.infer<typeof SeveritySchema>;
 export const SEVERITIES: readonly Severity[] = ["critical", "high", "medium", "low"];
 
-export const CategorySchema = z.enum(["presencia", "posición", "tamaño", "tipografía", "color", "texto", "contraste", "página"]);
+export const CategorySchema = z.enum(["presencia", "posición", "tamaño", "tipografía", "color", "texto", "contraste", "página", "visual"]);
 export type Category = z.infer<typeof CategorySchema>;
 
 export const RuleIdSchema = z.enum([
@@ -15,6 +15,7 @@ export const RuleIdSchema = z.enum([
   "border", "radius", "shadow", "opacity",
   "text-content", "text-clipped", "contrast",
   "canvas-size", "page-overflow", "page-height",
+  "visual-unclassified",
 ]);
 export type RuleId = z.infer<typeof RuleIdSchema>;
 
@@ -85,6 +86,10 @@ export const ConfigSchema = z.object({
       /** px de tamaño de fuente. */
       fontSizeMedium: px(1),
       fontSizeHigh: px(3),
+      /** Fracción del lienzo que ocupa una diferencia visual sin explicar para ser «alta». */
+      regionRatioHigh: px(0.02),
+      /** Fracción del lienzo desde la que es «media»; por debajo, «baja». */
+      regionRatioMedium: px(0.002),
     })
     .prefault({}),
 

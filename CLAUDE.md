@@ -52,10 +52,10 @@ scripts/            hook de pruebas y generador del JSON Schema                 
 docs/               snapshot.md y snapshot.schema.json                                                   [existe]
 packages/capture/   Playwright: página construida → snapshot                                             [existe]
 packages/figma/     API REST de Figma: frame → snapshot, con caché                                       [existe]
-packages/visual/    diferencia de píxeles y mapa de calor                                                [Fase 4]
+packages/visual/    diferencia de píxeles (pixelmatch), regiones y mapa de calor                         [existe]
 packages/evals/     mutaciones y medición de aciertos                                                    [Fase 5]
 packages/ai/        capa opcional con Claude                                                             [Fase 6]
-apps/cli/           `paridad capture|figma|compare …` (`capture`, `figma` y `compare`)                      [existe]
+apps/cli/           `paridad capture|figma|compare …` (`capture`, `figma` y `compare`; `--no-visual` omite píxeles)  [existe]
 apps/report/        reporte web (Next.js)                                                                [Fase 7]
 ```
 
@@ -133,6 +133,11 @@ Una línea cada una: qué se decidió y por qué.
 - **D-037 · Un color fuera de la paleta nunca baja de «media»** — aunque el ΔE sea pequeño, es un color que el diseño no usa. Los fuera de paleta en elementos que sobran se resumen en un hallazgo por color.
 - **D-038 · El reporte es datos validados con Zod (`ReportSchema`)** — la app del reporte (Fase 7) y la IA (Fase 6) leen exactamente esto; cada hallazgo trae id estable, regla, categoría, severidad, título, las cajas en ambos lados y evidencia esperado/obtenido.
 - **D-039 · Las pruebas del motor mutan snapshots en memoria** — rápidas y sin navegador; la página de control (diseño vs captura guardada) debe dar 0 hallazgos y 100. Las mutaciones sobre páginas reales llegan con la Fase 5. `page.snapshot.json` está vigilado contra deriva por una prueba de `capture`.
+- **D-040 · Diferencia visual con pixelmatch (umbral 0.1, sin contar antialiasing) y alineación a la menor escala** — una imagen @2x se reduce promediando bloques para compararla con una @1x sin ruido; si una página es más alta, lo que le falta se rellena de magenta y cuenta como diferencia (queda como región). Las zonas a ignorar entran como máscara de píxeles (`ignoreMask`).
+- **D-041 · Las regiones salen de una rejilla de 8 px con tolerancia de 2 celdas, caja ajustada a los píxeles y mínimo de 16 píxeles** — junta diferencias cercanas en un rectángulo útil para el reporte y descarta el ruido; las cajas que se solapan se fusionan.
+- **D-042 · `visual` mide y `core` clasifica** — el paquete de imágenes no sabe de hallazgos y `core` no depende de librerías de imagen; `attachVisual` (pura) cruza las regiones con los hallazgos.
+- **D-043 · Una región «la explica» un hallazgo según su tipo de regla** — las que mueven cosas (posición, espaciado, tamaño, falta, sobra) cuentan con sus hijos; radio, borde y sombra solo explican regiones junto al borde (franja de 24 px); fondo y opacidad exigen cubrir ≥ 25 % de la caja; el resto, que ≥ 60 % de la región caiga en la zona. Se descubrió con una prueba que un hallazgo de radio «explicaba» cualquier diferencia dentro de la tarjeta.
+- **D-044 · Lo que ninguna regla explica es un hallazgo de categoría «visual»** — severidad por fracción del lienzo: ≥ 2 % alta, ≥ 0.2 % media, menos baja; entra al puntaje como cualquier otro.
 
 ## Estado de fases
 
@@ -140,7 +145,7 @@ Una línea cada una: qué se decidió y por qué.
 - [x] **Fase 1** · Capturar la página construida
 - [x] **Fase 2** · Leer el diseño desde Figma (⚠ pendiente validar con un archivo real, ver D-029)
 - [x] **Fase 3** · Motor de comparación
-- [ ] Fase 4 · Diferencia visual
+- [x] **Fase 4** · Diferencia visual
 - [ ] Fase 5 · Evaluaciones
 - [ ] Fase 6 · Capa de IA
 - [ ] Fase 7 · Reporte

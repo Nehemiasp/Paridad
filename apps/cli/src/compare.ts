@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { capturePage, writeCapture } from "@paridad/capture";
-import { assertSnapshot, compare, SEVERITIES, type Report, type Snapshot } from "@paridad/core";
+import { assertSnapshot, attachVisual, compare, SEVERITIES, type Box, type Report, type Snapshot } from "@paridad/core";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
+import { visualDiff } from "@paridad/visual";
 import { loadConfigFile } from "./config-file.ts";
 import { loadEnvLocal } from "./env.ts";
 import { buildIgnoreZones, parsePositiveInt, parseScale } from "./options.ts";
@@ -40,6 +41,12 @@ export function summarize(report: Report, limit = 10): string {
     `Hallazgos: ${report.summary.total}  (${SEVERITIES.map((s) => `${bySeverity[s] ?? 0} ${SEVERITY_LABEL[s]}${(bySeverity[s] ?? 0) === 1 ? "" : "s"}`).join(" · ")})`,
     `Emparejados: ${report.matching.pairs} · faltan: ${report.matching.missing} · sobran: ${report.matching.extra}`,
   ];
+  if (report.visual) {
+    const v = report.visual;
+    const unclassified = v.regions.filter((r) => !r.classified).length;
+    lines.push(`Diferencia visual: ${(v.diffRatio * 100).toFixed(2)} % de los píxeles · ${v.regions.length} ${v.regions.length === 1 ? "región" : "regiones"}${v.regions.length ? ` (${unclassified} sin clasificar)` : ""}`);
+    if (v.widthMismatch) lines.push("  Aviso: los lienzos no miden lo mismo de ancho; se comparó la parte común.");
+  }
   const top = report.findings.filter((f) => f.severity === "critical" || f.severity === "high");
   if (top.length) {
     lines.push("", "Críticos y altos:");
@@ -63,6 +70,8 @@ export interface CompareOptions {
   ignoreSelector?: string[];
   ignoreRect?: string[];
   name?: string;
+  /** `false` con --no-visual. */
+  visual?: boolean;
 }
 
 /** `paridad compare`: dos modos, con archivos snapshot o la tubería completa (Figma + página). */
@@ -82,6 +91,8 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
   let design: Snapshot;
   let page: Snapshot;
   const paths: NonNullable<Parameters<typeof compare>[2]>["paths"] = {};
+  let designImage: string | undefined;
+  let pageImage: string | undefined;
 
   if (opts.design) {
     // ── Modo archivos ────────────────────────────────────────────────────
@@ -93,6 +104,8 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
     const img = (s: Snapshot, snapPath: string) => (s.canvas.image ? rel(resolve(dirname(snapPath), s.canvas.image.path)) : undefined);
     paths.design = { snapshot: rel(dPath), ...(img(design, dPath) ? { image: img(design, dPath)! } : {}) };
     paths.page = { snapshot: rel(pPath), ...(img(page, pPath) ? { image: img(page, pPath)! } : {}) };
+    if (design.canvas.image) designImage = resolve(dirname(dPath), design.canvas.image.path);
+    if (page.canvas.image) pageImage = resolve(dirname(pPath), page.canvas.image.path);
   } else {
     // ── Modo tubería: Figma + captura de la página ────────────────────────
     if (!isUrl(opts.page)) throw new Error("Con --figma, --page debe ser la URL de la página (http://localhost:3000, https://…).");
@@ -110,6 +123,7 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
     writeFileSync(join(designDir, "snapshot.json"), JSON.stringify(design, null, 2) + "\n");
     if (fetched.image) writeFileSync(join(designDir, design.canvas.image?.path ?? "design.png"), fetched.image);
     paths.design = { snapshot: rel(join(designDir, "snapshot.json")), ...(fetched.image ? { image: rel(join(designDir, design.canvas.image?.path ?? "design.png")) } : {}) };
+    if (fetched.image) designImage = join(designDir, design.canvas.image?.path ?? "design.png");
 
     const width = opts.width ? parsePositiveInt("--width", opts.width) : Math.round(design.canvas.width);
     io.out(`Capturando ${opts.page} a ${width} px (el ancho del frame)…\n`);
@@ -125,9 +139,28 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
     const pageDir = join(outDir, "page");
     const written = writeCapture(captured, pageDir);
     paths.page = { snapshot: rel(written.snapshotPath), image: rel(written.screenshotPath) };
+    pageImage = written.screenshotPath;
   }
 
-  const report = compare(design, page, { config, paths });
+  let report = compare(design, page, { config, paths });
+
+  // ── Diferencia visual (Fase 4) ─────────────────────────────────────────
+  if (opts.visual !== false) {
+    if (designImage && pageImage && existsSync(designImage) && existsSync(pageImage)) {
+      const rects = (s: Snapshot): Box[] => s.ignore.flatMap((z) => ("rect" in z ? [z.rect] : []));
+      const result = visualDiff({
+        design: { png: readFileSync(designImage), scale: design.canvas.scale },
+        page: { png: readFileSync(pageImage), scale: page.canvas.scale },
+        ignoreRects: [...rects(design), ...rects(page)],
+      });
+      const heatmapPath = join(outDir, "heatmap.png");
+      writeFileSync(heatmapPath, result.heatmap);
+      const { heatmap: _heatmap, ...rawVisual } = result;
+      report = attachVisual(report, { ...rawVisual, heatmapPath: rel(heatmapPath) }, { design, page, config });
+    } else {
+      io.err("Aviso: falta la imagen del diseño o la de la página; se omite la diferencia visual.\n");
+    }
+  }
   const reportPath = join(outDir, "report.json");
   writeFileSync(reportPath, JSON.stringify(report, null, 2) + "\n");
   io.out("\n" + summarize(report));
