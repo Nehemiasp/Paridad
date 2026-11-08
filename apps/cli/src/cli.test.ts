@@ -73,24 +73,25 @@ describe("paridad capture", () => {
   });
 });
 
-describe("paridad figma", () => {
-  const nodes = readFigmaNodesResponse();
-  const images = readFigmaImagesResponse();
-  const png = readFileSync(landing.designImage);
-  const ok = (data: unknown, bin?: Buffer) => ({
-    ok: true,
-    status: 200,
-    headers: { get: () => null },
-    json: async () => data,
-    arrayBuffer: async () => (bin ? (bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength) as ArrayBuffer) : new ArrayBuffer(0)),
-  });
-  const fetchFake: FetchLike = async (url) => {
-    if (url.includes("/nodes")) return ok(nodes);
-    if (url.includes("/v1/images/")) return ok(images);
-    if (url.includes("/variables/")) return { ...ok({}), ok: false, status: 403 };
-    return ok({}, png);
-  };
+const nodes = readFigmaNodesResponse();
+const images = readFigmaImagesResponse();
+const png = readFileSync(landing.designImage);
+const ok = (data: unknown, bin?: Buffer) => ({
+  ok: true,
+  status: 200,
+  headers: { get: () => null },
+  json: async () => data,
+  arrayBuffer: async () => (bin ? (bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength) as ArrayBuffer) : new ArrayBuffer(0)),
+});
+const fetchFake: FetchLike = async (url) => {
+  if (url.includes("/nodes")) return ok(nodes);
+  if (url.includes("/v1/images/")) return ok(images);
+  if (url.includes("/variables/")) return { ...ok({}), ok: false, status: 403 };
+  return ok({}, png);
+};
 
+
+describe("paridad figma", () => {
   it("sin token explica cómo conseguirlo y no abre la red", async () => {
     const io = memoryIo();
     const fetch = vi.fn(fetchFake);
@@ -135,5 +136,80 @@ describe("loadEnvLocal", () => {
     expect(loadEnvLocal(dir, {}).FIGMA_TOKEN).toBe("del-archivo");
     expect(loadEnvLocal(dir, { FIGMA_TOKEN: "del-entorno" }).FIGMA_TOKEN).toBe("del-entorno");
     expect(loadEnvLocal(join(dir, "no-existe"), { X: "1" })).toEqual({ X: "1" });
+  });
+});
+
+describe("paridad compare", () => {
+  const dir = () => mkdtempSync(join(tmpdir(), "paridad-cmp-"));
+  const designFile = landing.designSnapshot;
+  const pageFile = join(landing.dir, "page.snapshot.json");
+
+  it("modo archivos: compara dos snapshots y escribe report.json (la página de control da 100)", async () => {
+    const out = dir();
+    const io = memoryIo();
+    const code = await run(["compare", "--design", designFile, "--page", pageFile, "--out", out], io, { cwd: dir() });
+    expect(io.stderr).toBe("");
+    expect(code).toBe(0);
+    expect(io.stdout).toContain("Puntaje de paridad: 100 / 100");
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    expect(report.summary.total).toBe(0);
+    expect(report.design.imagePath).toMatch(/design\.png$/);
+    expect(report.page.imagePath).toMatch(/page\.png$/);
+  });
+
+  it("resume los críticos y altos, y --fail-under sale con código 2", async () => {
+    const out = dir();
+    const broken = JSON.parse(readFileSync(pageFile, "utf8"));
+    broken.elements = broken.elements.filter((e: { name?: string }) => e.name !== "a.btn.btn-primary");
+    const bad = join(dir(), "page.json");
+    writeFileSync(bad, JSON.stringify(broken));
+    const io = memoryIo();
+    const code = await run(["compare", "--design", designFile, "--page", bad, "--out", out, "--fail-under", "95"], io, { cwd: dir() });
+    expect(code).toBe(2);
+    expect(io.stdout).toContain("Críticos y altos:");
+    expect(io.stdout).toContain("[crítica] Falta en el código");
+    expect(io.stderr).toContain("menor que el mínimo exigido (95)");
+  });
+
+  it("lee paridad.config.ts del directorio de trabajo", async () => {
+    const cwd = dir();
+    writeFileSync(join(cwd, "paridad.config.mjs"), "export default { disabledRules: ['missing'] };\n");
+    const broken = JSON.parse(readFileSync(pageFile, "utf8"));
+    broken.elements = broken.elements.filter((e: { name?: string }) => e.name !== "a.btn.btn-primary");
+    const bad = join(cwd, "page.json");
+    writeFileSync(bad, JSON.stringify(broken));
+    const io = memoryIo();
+    const code = await run(["compare", "--design", designFile, "--page", bad, "--out", join(cwd, "o")], io, { cwd });
+    expect(code).toBe(0);
+    expect(io.stdout).toContain("Configuración:");
+    expect(io.stdout).not.toContain("[crítica]");
+  });
+
+  it("errores de uso claros", async () => {
+    const cases: [string[], RegExp][] = [
+      [["compare"], /Falta --page/],
+      [["compare", "--page", pageFile], /Falta el diseño/],
+      [["compare", "--design", designFile, "--figma", "x", "--page", pageFile], /no los dos/],
+      [["compare", "--design", designFile, "--page", "http://localhost:3000"], /debe ser un snapshot/],
+      [["compare", "--figma", landing.figmaUrl, "--page", pageFile], /debe ser la URL/],
+      [["compare", "--design", "no-existe.json", "--page", pageFile], /No existe el archivo/],
+      [["compare", "--design", designFile, "--page", pageFile, "--config", "no-hay.ts"], /No existe el archivo de configuración/],
+      [["compare", "--design", designFile, "--page", pageFile, "--out", dir(), "--fail-under", "abc"], /de 0 a 100/],
+    ];
+    for (const [argv, re] of cases) {
+      const io = memoryIo();
+      expect(await run(argv, io, { cwd: dir(), env: { FIGMA_TOKEN: "t" } }), argv.join(" ")).toBe(1);
+      expect(io.stderr, argv.join(" ")).toMatch(re);
+    }
+  });
+
+  it("modo completo: Figma (sin red) + captura de la página de ejemplo = paridad casi perfecta", async () => {
+    const out = dir();
+    const io = memoryIo();
+    const code = await run(["compare", "--figma", landing.figmaUrl, "--page", pathToFileURL(landing.pageIndex).href, "--out", out], io, { cwd: dir(), env: { FIGMA_TOKEN: "t" }, fetch: fetchFake });
+    expect(io.stderr).toBe("");
+    expect(code).toBe(0);
+    expect(io.stdout).toContain("Puntaje de paridad: 100 / 100");
+    for (const f of ["design/snapshot.json", "design/design.png", "page/snapshot.json", "page/screenshot.png", "report.json"]) expect(existsSync(join(out, f)), f).toBe(true);
   });
 });

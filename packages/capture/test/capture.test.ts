@@ -124,6 +124,13 @@ describe("capturePage · página de ejemplo (landing)", () => {
     }
   });
 
+  it("fixtures/landing/page.snapshot.json sigue igual a una captura fresca (si falla, regenérelo a propósito)", () => {
+    const committed = assertSnapshot(JSON.parse(readFileSync(`${landing.dir}/page.snapshot.json`, "utf8")));
+    expect(r1.snapshot.elements).toEqual(committed.elements);
+    expect(r1.snapshot.canvas).toEqual({ ...committed.canvas, image: { ...committed.canvas.image!, path: "screenshot.png" } });
+    expect(r1.snapshot.palette).toEqual(committed.palette);
+  });
+
   it("a otro ancho, la página se reacomoda (un snapshot por tamaño)", async () => {
     const r = await capturePage({ url: fileUrl(landing.pageIndex), width: 390, height: 844 }, browser);
     expect(r.snapshot.canvas.width).toBe(390);

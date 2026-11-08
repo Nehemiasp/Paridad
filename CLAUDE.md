@@ -40,12 +40,13 @@ Motivo de cuadros con píldora azul.
 | `npm run typecheck` | `tsc --noEmit` en la raíz y en cada paquete. |
 | `npm run schema:json` | Regenera `docs/snapshot.schema.json` desde Zod. |
 | `npm run paridad -- capture --page <url> --width 1440` | Captura una página → `snapshot.json` + `screenshot.png` (por defecto en `out/capture`). |
+| `npm run paridad -- compare --design d.json --page p.json` | Compara dos snapshots → `report.json` + resumen. Con `--figma <url> --page <url>` hace todo: lee Figma, captura la página y compara. `--fail-under 90` sale con código 2 si el puntaje es menor. |
 | `npm run paridad -- figma --url <frame>` | Lee un frame de Figma → `snapshot.json` + `design.png` (por defecto en `out/design`). Requiere `FIGMA_TOKEN` en `.env.local`. |
 
 ## Estructura
 
 ```
-packages/core/      formato snapshot (Zod), validación; luego emparejamiento, reglas, puntaje. Sin red.   [existe]
+packages/core/      snapshot (Zod), emparejamiento, reglas, severidad, puntaje, reporte. Sin red.          [existe]
 fixtures/           datos de prueba compartidos; landing/ = página «Casa Nube» + snapshot de diseño       [existe]
 scripts/            hook de pruebas y generador del JSON Schema                                          [existe]
 docs/               snapshot.md y snapshot.schema.json                                                   [existe]
@@ -54,7 +55,7 @@ packages/figma/     API REST de Figma: frame → snapshot, con caché           
 packages/visual/    diferencia de píxeles y mapa de calor                                                [Fase 4]
 packages/evals/     mutaciones y medición de aciertos                                                    [Fase 5]
 packages/ai/        capa opcional con Claude                                                             [Fase 6]
-apps/cli/           `paridad capture|figma|compare …` (hoy `capture` y `figma`)                             [existe]
+apps/cli/           `paridad capture|figma|compare …` (`capture`, `figma` y `compare`)                      [existe]
 apps/report/        reporte web (Next.js)                                                                [Fase 7]
 ```
 
@@ -64,6 +65,30 @@ Los paquetes se crean al llegar su fase (no hay andamiaje vacío).
 
 `.claude/settings.json` ejecuta `scripts/test-edited-package.mjs` tras cada `Edit|Write|MultiEdit`: corre solo las pruebas del paquete editado
 (`fixtures/` → pruebas de `core`; `docs/` y raíz → nada). Si fallan, devuelve la salida a Claude con código 2.
+
+## Severidad y puntaje (criterio propuesto — **para su revisión**)
+
+Cada hallazgo trae una severidad. Todos los umbrales son configurables en `paridad.config.ts` (`severity`, `tolerances`, `score`).
+Lo que queda por debajo de su **tolerancia** es ruido y no se reporta.
+
+| Severidad | Qué es | Ejemplos |
+|---|---|---|
+| **Crítica** | Falta algo del diseño, o lo que se ve no se puede comparar o leer | Elemento que falta; la fuente no cargó (un solo hallazgo para todos los textos); la ventana no mide lo que el frame |
+| **Alta** | Un usuario lo notaría sin ver el diseño al lado | Elemento que sobra; texto cortado; otra familia tipográfica; peso 800→600; fondo que desaparece; contraste < 3:1; página desbordada; diferencias > 12 px o ΔE > 10 |
+| **Media** | Se nota al comparar | 4–12 px de posición o tamaño; ΔE 4–10; texto con otra copia; color fuera de la paleta (mínimo «media»); contraste entre 3:1 y 4.5:1; una línea más de texto |
+| **Baja** | Se ve solo con lupa | 1–4 px; ΔE 2–4; mayúsculas distintas; interlineado o espaciado entre letras ligeramente distintos |
+
+| Tolerancia (ruido) | Valor |
+|---|---|
+| Posición, espaciado, tamaño | 1 px |
+| Tamaño de letra / interlineado / espaciado entre letras | 0.5 px / 1 px / 0.25 px |
+| Color | ΔE2000 ≤ 2 (lo que el ojo no distingue) |
+| Radio de esquina (ya recortado a la mitad del lado menor) | 1 px |
+| Borde / sombra / opacidad | 0.5 px / 1 px / 0.05 |
+
+**Puntaje de paridad (0–100):** `100 − puntos`, donde cada hallazgo resta **crítica 15 · alta 6 · media 2 · baja 0.5**, con un **tope de 40 puntos por categoría** (presencia, posición, tamaño, tipografía, color, texto, contraste, página) para que cien diferencias de 1 px no oculten un elemento que falta. El reporte trae el desglose por categoría y dice si algún tope se aplicó.
+
+**Causa raíz, no síntomas:** la posición se mide respecto al contenedor (si una tarjeta baja 4 px, sus hijos no se reportan); si el corrimiento de un elemento lo explica su vecino (cambió su tamaño o la separación), se reporta una sola vez en la causa; si falta una caja, es un hallazgo con la cuenta de lo que había dentro; y la fuente que no cargó es uno solo.
 
 ## Decisiones
 
@@ -100,13 +125,21 @@ Una línea cada una: qué se decidió y por qué.
 - **D-029 · ⚠ Los datos de Figma de las pruebas son sintéticos, no una grabación real** — se construyeron con la forma documentada de la API (`fixtures/landing/figma/`). Falta validar el traductor con un archivo real y un token propio; hasta entonces la Fase 2 está probada contra la documentación, no contra Figma.
 - **D-030 · Los radios se normalizarán al comparar (Fase 3)** — un diseñador escribe radio = mitad del alto (21, 28) y el CSS suele poner 999px; ambos pintan igual. La regla debe recortar el radio a la mitad del lado menor antes de comparar.
 - **D-031 · Un proyecto de Vitest por paquete exige listarlo en `projects`** — una vez `apps/*` quedó fuera y sus pruebas no corrían sin avisar; `scripts/workspaces.test.ts` lo vigila.
+- **D-032 · Emparejar: textos primero, cajas después** — los textos anclan (similitud de Levenshtein sin mayúsculas + cercanía de posición, asignación voraz: los textos repetidos se resuelven por posición); las cajas se emparejan por IoU con bonos si sus padres son pareja o si contienen textos ya emparejados, de arriba hacia abajo.
+- **D-033 · Posición relativa al contenedor, medida sin su borde** — lo que el desarrollador escribe en CSS es el padding; así el hallazgo dice «Padding izquierdo: diseño 16 px · código 20 px» y no 17.
+- **D-034 · El espaciado se atribuye al elemento que está fuera de sitio** — si B está donde debe y A se movió, el hallazgo está en A; si B se corrió, el hallazgo es el hueco A→B y se suprime el de posición de B. Solo hay vecinos de flujo a ≤ 200 px (`maxNeighborGap`).
+- **D-035 · Las zonas a ignorar de un lado valen también para el otro** — una fecha dinámica en la página tiene un marcador en el diseño en el mismo lugar; ignorar solo un lado produciría «falta» o «sobra» falsos.
+- **D-036 · El contraste se calcula sobre el fondo efectivo y baja un nivel si el diseño ya lo tenía** — se componen los fondos con transparencia de los ancestros; si hay una imagen debajo no se opina (incierto). Si el diseño tiene el mismo problema, el código hizo lo pedido: baja un nivel y el título lo dice.
+- **D-037 · Un color fuera de la paleta nunca baja de «media»** — aunque el ΔE sea pequeño, es un color que el diseño no usa. Los fuera de paleta en elementos que sobran se resumen en un hallazgo por color.
+- **D-038 · El reporte es datos validados con Zod (`ReportSchema`)** — la app del reporte (Fase 7) y la IA (Fase 6) leen exactamente esto; cada hallazgo trae id estable, regla, categoría, severidad, título, las cajas en ambos lados y evidencia esperado/obtenido.
+- **D-039 · Las pruebas del motor mutan snapshots en memoria** — rápidas y sin navegador; la página de control (diseño vs captura guardada) debe dar 0 hallazgos y 100. Las mutaciones sobre páginas reales llegan con la Fase 5. `page.snapshot.json` está vigilado contra deriva por una prueba de `capture`.
 
 ## Estado de fases
 
 - [x] **Fase 0** · Planificación y base
 - [x] **Fase 1** · Capturar la página construida
 - [x] **Fase 2** · Leer el diseño desde Figma (⚠ pendiente validar con un archivo real, ver D-029)
-- [ ] Fase 3 · Motor de comparación
+- [x] **Fase 3** · Motor de comparación
 - [ ] Fase 4 · Diferencia visual
 - [ ] Fase 5 · Evaluaciones
 - [ ] Fase 6 · Capa de IA

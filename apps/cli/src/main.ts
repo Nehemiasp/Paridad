@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { capturePage, writeCapture } from "@paridad/capture";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
+import { runCompare, type CompareOptions } from "./compare.ts";
 import { loadEnvLocal } from "./env.ts";
 import { buildIgnoreZones, parsePositiveInt, parseScale } from "./options.ts";
 
@@ -116,7 +117,34 @@ export function buildProgram(io: Io = defaultIo, deps: Deps = {}): Command {
       for (const w of result.warnings) io.err(`Aviso: ${w}\n`);
     });
 
+  program
+    .command("compare")
+    .description("Compara el diseño con la página y escribe report.json con los hallazgos y el puntaje de paridad.")
+    .option("--design <snapshot.json>", "snapshot del diseño (modo archivos)")
+    .option("--figma <url>", "enlace del frame de Figma (modo completo: lee Figma y captura la página)")
+    .option("--page <snapshot.json|url>", "snapshot de la página (con --design) o su URL (con --figma)")
+    .option("--out <carpeta>", "carpeta de salida", "out/compare")
+    .option("--config <archivo>", "configuración (por defecto paridad.config.ts si existe)")
+    .option("--width <px>", "ancho de la ventana (por defecto, el del frame)")
+    .option("--height <px>", "alto de la ventana", "900")
+    .option("--scale <1|2>", "escala de las imágenes", "1")
+    .option("--refresh", "ignorar la caché de Figma")
+    .option("--fail-under <puntaje>", "salir con código 2 si el puntaje es menor (útil en CI)")
+    .option("--name <texto>", "nombre de la página en el reporte")
+    .option("--ignore-selector <css>", "zona a ignorar por selector CSS (se puede repetir)", collect)
+    .option("--ignore-rect <x,y,ancho,alto>", "zona a ignorar por rectángulo (se puede repetir)", collect)
+    .action(async (opts: CompareOptions) => {
+      const code = await runCompare(opts, io, deps);
+      if (code !== 0) throw new ExitCode(code);
+    });
+
   return program;
+}
+
+class ExitCode extends Error {
+  constructor(readonly code: number) {
+    super(`salida ${code}`);
+  }
 }
 
 /** Ejecuta el CLI y devuelve el código de salida (0 = bien). */
@@ -130,6 +158,7 @@ export async function run(argv: string[], io: Io = defaultIo, deps: Deps = {}): 
       // --help y --version salen con código 0; el resto son errores de uso.
       return error.exitCode;
     }
+    if (error instanceof ExitCode) return error.code;
     io.err(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
