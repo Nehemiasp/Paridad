@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["scripts/**/*.ts", "scripts/**/*.mjs", "vitest.config.ts"],
+  "compilerOptions": { "allowJs": true, "checkJs": false }
+}

@@ -1,0 +1,645 @@
+{
+  "schemaVersion": 1,
+  "source": "design",
+  "meta": {
+    "name": "Casa Nube · landing (diseño de ejemplo)",
+    "capturedAt": "2026-11-08T00:00:00.000Z",
+    "origin": {},
+    "tool": "maqueta escrita a mano (valores medidos una vez con Chromium y fijados como datos)"
+  },
+  "canvas": {
+    "width": 1440,
+    "height": 927,
+    "scale": 1,
+    "image": {
+      "path": "design.png",
+      "width": 1440,
+      "height": 927
+    }
+  },
+  "palette": {
+    "colors": [
+      {
+        "hex": "#0e1116",
+        "name": "Tinta"
+      },
+      {
+        "hex": "#2b2f36",
+        "name": "Texto"
+      },
+      {
+        "hex": "#6a707a",
+        "name": "Apagado"
+      },
+      {
+        "hex": "#dadde2",
+        "name": "Línea"
+      },
+      {
+        "hex": "#ecedef",
+        "name": "Suave"
+      },
+      {
+        "hex": "#fafaf8",
+        "name": "Fondo"
+      },
+      {
+        "hex": "#043565",
+        "name": "Azul"
+      },
+      {
+        "hex": "#ffffff",
+        "name": "Blanco"
+      }
+    ],
+    "fonts": [
+      {
+        "family": "Bricolage Grotesque",
+        "weights": [
+          800
+        ]
+      },
+      {
+        "family": "Instrument Sans",
+        "weights": [
+          400,
+          500,
+          600
+        ]
+      }
+    ]
+  },
+  "ignore": [],
+  "elements": [
+    {
+      "id": "page",
+      "kind": "box",
+      "name": "Página",
+      "path": "body",
+      "parentId": null,
+      "box": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 927
+      },
+      "style": {
+        "background": "#fafaf8"
+      },
+      "z": 0
+    },
+    {
+      "id": "logo",
+      "kind": "text",
+      "name": "Logotipo",
+      "path": ".logo",
+      "parentId": "page",
+      "box": {
+        "x": 84,
+        "y": 23.5,
+        "width": 127.34,
+        "height": 32
+      },
+      "text": {
+        "content": "Casa Nube",
+        "normalized": "Casa Nube"
+      },
+      "style": {
+        "fontFamily": "Bricolage Grotesque",
+        "fontSize": 24,
+        "fontWeight": 800,
+        "lineHeight": 32,
+        "letterSpacing": 0,
+        "color": "#0e1116"
+      },
+      "z": 1
+    },
+    {
+      "id": "nav-coleccion",
+      "kind": "text",
+      "name": "Enlace Colección",
+      "path": ".nav a",
+      "parentId": "page",
+      "box": {
+        "x": 578.45,
+        "y": 27.5,
+        "width": 74.81,
+        "height": 24
+      },
+      "text": {
+        "content": "Colección",
+        "normalized": "Colección"
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 16,
+        "fontWeight": 500,
+        "lineHeight": 24,
+        "letterSpacing": 0,
+        "color": "#2b2f36"
+      },
+      "z": 2
+    },
+    {
+      "id": "nav-talleres",
+      "kind": "text",
+      "name": "Enlace Talleres",
+      "path": ".nav a:nth-of-type(2)",
+      "parentId": "page",
+      "box": {
+        "x": 685.27,
+        "y": 27.5,
+        "width": 57.27,
+        "height": 24
+      },
+      "text": {
+        "content": "Talleres",
+        "normalized": "Talleres"
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 16,
+        "fontWeight": 500,
+        "lineHeight": 24,
+        "letterSpacing": 0,
+        "color": "#2b2f36"
+      },
+      "z": 3
+    },
+    {
+      "id": "nav-contacto",
+      "kind": "text",
+      "name": "Enlace Contacto",
+      "path": ".nav a:nth-of-type(3)",
+      "parentId": "page",
+      "box": {
+        "x": 774.53,
+        "y": 27.5,
+        "width": 69.77,
+        "height": 24
+      },
+      "text": {
+        "content": "Contacto",
+        "normalized": "Contacto"
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 16,
+        "fontWeight": 500,
+        "lineHeight": 24,
+        "letterSpacing": 0,
+        "color": "#2b2f36"
+      },
+      "z": 4
+    },
+    {
+      "id": "btn-secundario",
+      "kind": "box",
+      "name": "Botón secundario",
+      "path": ".btn-secondary",
+      "parentId": "page",
+      "box": {
+        "x": 1211.39,
+        "y": 18.5,
+        "width": 144.61,
+        "height": 42
+      },
+      "style": {
+        "border": {
+          "width": 1,
+          "style": "solid",
+          "color": "#0e1116"
+        },
+        "radius": 999
+      },
+      "z": 5
+    },
+    {
+      "id": "btn-secundario-texto",
+      "kind": "text",
+      "name": "Texto del botón secundario",
+      "path": ".btn-secondary",
+      "parentId": "btn-secundario",
+      "box": {
+        "x": 1232.39,
+        "y": 29,
+        "width": 102.61,
+        "height": 20
+      },
+      "text": {
+        "content": "Reservar visita",
+        "normalized": "Reservar visita"
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 15,
+        "fontWeight": 600,
+        "lineHeight": 20,
+        "letterSpacing": 0,
+        "color": "#0e1116"
+      },
+      "z": 6
+    },
+    {
+      "id": "hero-titulo",
+      "kind": "text",
+      "name": "Título del hero",
+      "path": ".hero h1",
+      "parentId": "page",
+      "box": {
+        "x": 84,
+        "y": 175.5,
+        "width": 619.47,
+        "height": 136
+      },
+      "text": {
+        "content": "Cerámica hecha con calma",
+        "normalized": "Cerámica hecha con calma"
+      },
+      "style": {
+        "fontFamily": "Bricolage Grotesque",
+        "fontSize": 64,
+        "fontWeight": 800,
+        "lineHeight": 68,
+        "letterSpacing": -1.28,
+        "color": "#0e1116"
+      },
+      "z": 7
+    },
+    {
+      "id": "hero-bajada",
+      "kind": "text",
+      "name": "Bajada del hero",
+      "path": ".lead",
+      "parentId": "page",
+      "box": {
+        "x": 84,
+        "y": 336,
+        "width": 518.38,
+        "height": 60
+      },
+      "text": {
+        "content": "Piezas únicas para la mesa de todos los días, modeladas y horneadas en nuestro taller.",
+        "normalized": "Piezas únicas para la mesa de todos los días, modeladas y horneadas en nuestro taller."
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 20,
+        "fontWeight": 400,
+        "lineHeight": 30,
+        "letterSpacing": 0,
+        "color": "#2b2f36"
+      },
+      "z": 8
+    },
+    {
+      "id": "btn-primario",
+      "kind": "box",
+      "name": "Botón primario",
+      "path": ".btn-primary",
+      "parentId": "page",
+      "box": {
+        "x": 84,
+        "y": 436,
+        "width": 181.28,
+        "height": 56
+      },
+      "style": {
+        "background": "#043565",
+        "radius": 999
+      },
+      "z": 9
+    },
+    {
+      "id": "btn-primario-texto",
+      "kind": "text",
+      "name": "Texto del botón primario",
+      "path": ".btn-primary",
+      "parentId": "btn-primario",
+      "box": {
+        "x": 112,
+        "y": 452,
+        "width": 125.28,
+        "height": 24
+      },
+      "text": {
+        "content": "Ver la colección",
+        "normalized": "Ver la colección"
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 17,
+        "fontWeight": 600,
+        "lineHeight": 24,
+        "letterSpacing": 0,
+        "color": "#ffffff"
+      },
+      "z": 10
+    },
+    {
+      "id": "tarjeta-1",
+      "kind": "box",
+      "name": "Tarjeta 1",
+      "path": ".card",
+      "parentId": "page",
+      "box": {
+        "x": 84,
+        "y": 564,
+        "width": 408,
+        "height": 182
+      },
+      "style": {
+        "background": "#ffffff",
+        "border": {
+          "width": 1,
+          "style": "solid",
+          "color": "#dadde2"
+        },
+        "radius": 16
+      },
+      "z": 11
+    },
+    {
+      "id": "tarjeta-1-icono",
+      "kind": "box",
+      "name": "Icono de la tarjeta 1",
+      "path": ".card-icon",
+      "parentId": "tarjeta-1",
+      "box": {
+        "x": 101,
+        "y": 581,
+        "width": 48,
+        "height": 48
+      },
+      "style": {
+        "background": "#ecedef",
+        "radius": 12
+      },
+      "z": 12
+    },
+    {
+      "id": "tarjeta-1-titulo",
+      "kind": "text",
+      "name": "Título de la tarjeta 1",
+      "path": ".card h2",
+      "parentId": "tarjeta-1",
+      "box": {
+        "x": 101,
+        "y": 645,
+        "width": 239.27,
+        "height": 28
+      },
+      "text": {
+        "content": "Piezas hechas a mano",
+        "normalized": "Piezas hechas a mano"
+      },
+      "style": {
+        "fontFamily": "Bricolage Grotesque",
+        "fontSize": 22,
+        "fontWeight": 800,
+        "lineHeight": 28,
+        "letterSpacing": 0,
+        "color": "#0e1116"
+      },
+      "z": 13
+    },
+    {
+      "id": "tarjeta-1-texto",
+      "kind": "text",
+      "name": "Texto de la tarjeta 1",
+      "path": ".card p",
+      "parentId": "tarjeta-1",
+      "box": {
+        "x": 101,
+        "y": 681,
+        "width": 351.94,
+        "height": 48
+      },
+      "text": {
+        "content": "Cada pieza se modela, se esmalta y se hornea en nuestro taller.",
+        "normalized": "Cada pieza se modela, se esmalta y se hornea en nuestro taller."
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 24,
+        "letterSpacing": 0,
+        "color": "#6a707a"
+      },
+      "z": 14
+    },
+    {
+      "id": "tarjeta-2",
+      "kind": "box",
+      "name": "Tarjeta 2",
+      "path": ".card",
+      "parentId": "page",
+      "box": {
+        "x": 516,
+        "y": 564,
+        "width": 408,
+        "height": 182
+      },
+      "style": {
+        "background": "#ffffff",
+        "border": {
+          "width": 1,
+          "style": "solid",
+          "color": "#dadde2"
+        },
+        "radius": 16
+      },
+      "z": 15
+    },
+    {
+      "id": "tarjeta-2-icono",
+      "kind": "box",
+      "name": "Icono de la tarjeta 2",
+      "path": ".card-icon",
+      "parentId": "tarjeta-2",
+      "box": {
+        "x": 533,
+        "y": 581,
+        "width": 48,
+        "height": 48
+      },
+      "style": {
+        "background": "#ecedef",
+        "radius": 12
+      },
+      "z": 16
+    },
+    {
+      "id": "tarjeta-2-titulo",
+      "kind": "text",
+      "name": "Título de la tarjeta 2",
+      "path": ".card h2:nth-of-type(2)",
+      "parentId": "tarjeta-2",
+      "box": {
+        "x": 533,
+        "y": 645,
+        "width": 289.69,
+        "height": 28
+      },
+      "text": {
+        "content": "Talleres para principiantes",
+        "normalized": "Talleres para principiantes"
+      },
+      "style": {
+        "fontFamily": "Bricolage Grotesque",
+        "fontSize": 22,
+        "fontWeight": 800,
+        "lineHeight": 28,
+        "letterSpacing": 0,
+        "color": "#0e1116"
+      },
+      "z": 17
+    },
+    {
+      "id": "tarjeta-2-texto",
+      "kind": "text",
+      "name": "Texto de la tarjeta 2",
+      "path": ".card p:nth-of-type(2)",
+      "parentId": "tarjeta-2",
+      "box": {
+        "x": 533,
+        "y": 681,
+        "width": 346.09,
+        "height": 48
+      },
+      "text": {
+        "content": "Sesiones de tres horas, con todos los materiales incluidos.",
+        "normalized": "Sesiones de tres horas, con todos los materiales incluidos."
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 24,
+        "letterSpacing": 0,
+        "color": "#6a707a"
+      },
+      "z": 18
+    },
+    {
+      "id": "tarjeta-3",
+      "kind": "box",
+      "name": "Tarjeta 3",
+      "path": ".card",
+      "parentId": "page",
+      "box": {
+        "x": 948,
+        "y": 564,
+        "width": 408,
+        "height": 182
+      },
+      "style": {
+        "background": "#ffffff",
+        "border": {
+          "width": 1,
+          "style": "solid",
+          "color": "#dadde2"
+        },
+        "radius": 16
+      },
+      "z": 19
+    },
+    {
+      "id": "tarjeta-3-icono",
+      "kind": "box",
+      "name": "Icono de la tarjeta 3",
+      "path": ".card-icon",
+      "parentId": "tarjeta-3",
+      "box": {
+        "x": 965,
+        "y": 581,
+        "width": 48,
+        "height": 48
+      },
+      "style": {
+        "background": "#ecedef",
+        "radius": 12
+      },
+      "z": 20
+    },
+    {
+      "id": "tarjeta-3-titulo",
+      "kind": "text",
+      "name": "Título de la tarjeta 3",
+      "path": ".card h2:nth-of-type(3)",
+      "parentId": "tarjeta-3",
+      "box": {
+        "x": 965,
+        "y": 645,
+        "width": 207.2,
+        "height": 28
+      },
+      "text": {
+        "content": "Encargos a medida",
+        "normalized": "Encargos a medida"
+      },
+      "style": {
+        "fontFamily": "Bricolage Grotesque",
+        "fontSize": 22,
+        "fontWeight": 800,
+        "lineHeight": 28,
+        "letterSpacing": 0,
+        "color": "#0e1116"
+      },
+      "z": 21
+    },
+    {
+      "id": "tarjeta-3-texto",
+      "kind": "text",
+      "name": "Texto de la tarjeta 3",
+      "path": ".card p:nth-of-type(3)",
+      "parentId": "tarjeta-3",
+      "box": {
+        "x": 965,
+        "y": 681,
+        "width": 340.41,
+        "height": 24
+      },
+      "text": {
+        "content": "Vajillas y piezas únicas diseñadas junto a usted.",
+        "normalized": "Vajillas y piezas únicas diseñadas junto a usted."
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 16,
+        "fontWeight": 400,
+        "lineHeight": 24,
+        "letterSpacing": 0,
+        "color": "#6a707a"
+      },
+      "z": 22
+    },
+    {
+      "id": "pie-texto",
+      "kind": "text",
+      "name": "Texto del pie",
+      "path": ".site-footer",
+      "parentId": "page",
+      "box": {
+        "x": 84,
+        "y": 875,
+        "width": 256.95,
+        "height": 20
+      },
+      "text": {
+        "content": "© 2026 Casa Nube · Estudio de cerámica",
+        "normalized": "© 2026 Casa Nube · Estudio de cerámica"
+      },
+      "style": {
+        "fontFamily": "Instrument Sans",
+        "fontSize": 14,
+        "fontWeight": 400,
+        "lineHeight": 20,
+        "letterSpacing": 0,
+        "color": "#6a707a"
+      },
+      "z": 23
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+node_modules/
+.env.local
+.env.*.local
+.paridad-cache/
+out/
+coverage/
+*.log
+.DS_Store
