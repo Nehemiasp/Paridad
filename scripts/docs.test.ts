@@ -22,6 +22,19 @@ describe("documentación", () => {
     }
   });
 
+  it("CLAUDE.md: decisiones numeradas sin huecos, secciones en su sitio y las diez fases marcadas", () => {
+    const text = readFileSync(join(root, "CLAUDE.md"), "utf8");
+    const nums = [...text.matchAll(/^- \*\*D-(\d{3}) ·/gm)].map((m) => Number(m[1]));
+    expect(nums.length).toBeGreaterThanOrEqual(72);
+    expect(nums, "las decisiones deben ir D-001, D-002… sin saltos ni repetidas").toEqual(nums.map((_, i) => i + 1));
+    const headings = [...text.matchAll(/^## (.+)$/gm)].map((m) => m[1]!);
+    expect(headings.filter((h) => h === "Decisiones")).toHaveLength(1);
+    expect(headings.at(-1)).toBe("Estado de fases");
+    const phases = [...text.matchAll(/^- \[( |x)\] (?:\*\*)?Fase (\d)/gm)];
+    expect(phases.map((m) => m[2])).toEqual(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+    expect(phases.filter((m) => m[1] !== "x").map((m) => `Fase ${m[2]}`)).toEqual([]);
+  });
+
   it("las historias del portafolio versionadas tienen su tarjeta y su caso", () => {
     const text = readFileSync(join(root, "docs/casos/historias.md"), "utf8");
     const dirs = [...text.matchAll(/\]\(([a-z0-9-]+)\/caso\.md\)/g)].map((m) => m[1]!);

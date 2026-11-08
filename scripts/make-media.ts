@@ -97,5 +97,8 @@ renameSync(join(videoDir, webm), join(outDir, "flujo-del-reporte.webm"));
 writeFileSync(join(outDir, "reporte-demo.json"), JSON.stringify({ score: JSON.parse(readFileSync(join(report, "report.json"), "utf8")).score.value }, null, 2) + "\n");
 await browser.close();
 await app.close();
+// El reporte de demostración se conserva para poder abrirlo: `npm run paridad -- report --dir out/demo-reporte`.
+rmSync(join(import.meta.dirname, "..", "out", "demo-reporte"), { recursive: true, force: true });
+cpSync(report, join(import.meta.dirname, "..", "out", "demo-reporte"), { recursive: true });
 rmSync(work, { recursive: true, force: true });
 console.log(`Listo: ${outDir}`);

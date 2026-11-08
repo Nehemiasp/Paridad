@@ -139,6 +139,12 @@ Lo que queda por debajo de su **tolerancia** es ruido y no se reporta.
 - **Acción de GitHub** (`.github/actions/paridad/`, ejemplo en `docs/examples/paridad-pr.yml`, guía en `docs/github-action.md`): ⚠ **no probada en GitHub real**; sus piezas y su estructura sí tienen pruebas.
 - **`npm run media`** regenera las capturas y el video del reporte (`docs/media/`) con una página con errores reales servida en localhost.
 
+## El reporte (app web)
+
+`apps/report` es una app Next.js que **lee `report.json` y sus imágenes de una carpeta** (no se compila con los datos): `paridad … --open` la levanta en `127.0.0.1` en un puerto libre y abre el navegador. Muestra el puntaje grande con su fórmula y desglose, el conteo por severidad y qué se comparó; cuatro vistas (**lado a lado, superpuesta con divisor, transparencia ajustable, mapa de calor** con regiones clicables); la lista de hallazgos filtrable por severidad y tipo, donde al hacer clic se **resaltan las cajas en ambas imágenes** y se muestra lo esperado contra lo obtenido; exportación a **Markdown** (listo para un issue de GitHub, con lo que se ve en la lista) y **PDF**; y **pestañas por tamaño** si se abren varios reportes.
+
+Accesible por diseño y **auditado con axe-core** (WCAG 2.1 AA) en cada vista: se usa con teclado (pestañas con flechas/Inicio/Fin, enlace «Saltar al contenido»), los colores cumplen contraste (una prueba lo calcula con el motor de `core`) y **la severidad nunca depende solo del color** (cada una lleva su forma y su texto: ■ crítica, ▲ alta, ◆ media, ● baja).
+
 ## Decisiones
 
 Una línea cada una: qué se decidió y por qué.
@@ -199,14 +205,24 @@ Una línea cada una: qué se decidió y por qué.
 - **D-054 · Se mide el daño además de la mejora** — descartar un falso positivo sube la precisión, pero descartar un acierto esconde un error real; por eso se cuentan los «descartes dañinos» y uno solo basta para dejar la IA apagada.
 - **D-055 · El prompt trata hallazgos e imágenes como datos, no como instrucciones** — los títulos de los hallazgos incluyen texto de la página (que puede decir «ignore las reglas»); el sistema lo declara y, sobre todo, nada de lo que el modelo diga puede cambiar `findings` ni el puntaje.
 - **D-056 · La clave nunca sale** — se lee de `.env.local`/entorno, no se escribe en la caché ni en los errores (se reemplaza por `***`), y el prompt no incluye rutas de archivos.
+- **D-057 · La app lee el disco en cada visita, no se compila con los datos** — un reporte se genera con `paridad compare` cuando se quiere; la app es una vista. Por eso la página es dinámica y el CLI la arranca con `PARIDAD_REPORTS` (carpetas y etiquetas).
+- **D-058 · Un reporte es una carpeta autocontenida** — `compare` copia las imágenes dentro de la carpeta de salida; así se puede compartir la carpeta entera y el servidor puede servir *solo* imágenes de ella (`safeResolve` rechaza `..`, rutas absolutas, codificaciones y todo lo que no sea imagen: nunca sirve `report.json` ni snapshots).
+- **D-059 · Servidor solo en localhost, sin telemetría** — escucha en `127.0.0.1` con `NEXT_TELEMETRY_DISABLED`; la ruta del PDF solo acepta orígenes locales (Next toma el host de la conexión real, así que la guarda es defensa adicional).
+- **D-060 · El PDF sale de la propia vista de impresión** — Playwright abre `/?print=1` (sin controles) y la imprime; no hay una segunda maqueta que mantener. «Imprimir» del navegador usa los mismos estilos `@media print`.
+- **D-061 · Fuentes locales con `next/font/local`** — el reporte se ve igual sin red. Una prueba descubrió que una variable CSS propia en `:root` pisaba la de `next/font` y las fuentes de la marca **no cargaban** (caía a la del sistema, sin ningún error): ahora hay una prueba que verifica que las cuatro caras se descargan.
+- **D-062 · Se prueba la accesibilidad con una herramienta y con los ojos** — axe-core no ve que una píldora decorativa tape un texto en móvil; una captura sí. Y una prueba comprueba que axe *detecta* una violación inyectada (para no confiar en un auditor que nunca falla).
+- **D-063 · El Markdown escapa lo que viene de la página** — los textos de la página (que aparecen en los títulos de los hallazgos) pueden traer `|`, `<` o cualquier cosa; se escapan para no romper tablas ni inyectar HTML en un issue.
+- **D-064 · La skill solo la invoca la persona y su alcance está acotado** — llama a la API de Figma, abre un navegador y puede gastar tiempo; por eso `disable-model-invocation`, y `allowed-tools` lista únicamente `compare` y `summary` (una prueba lo vigila, junto con que los comandos que menciona existan en el CLI).
+- **D-065 · La acción nunca interpola valores dentro de un script** — todo entra por `env:` (el token y también las entradas de texto libre), porque `${{ … }}` dentro de `run:` permite inyectar comandos; corre con `pull_request` y no `pull_request_target` (un fork no recibe secretos); y el comentario se publica aunque falle el puntaje, devolviendo el código de salida al final.
+- **D-066 · Se prueba la documentación** — cada enlace de los `.md` debe apuntar a algo que existe, las capturas deben estar, y ningún archivo versionado puede contener tokens (Figma, Anthropic, GitHub); `.env.example` no trae valores.
+- **D-067 · El caso de estudio separa lo que sabe el proyecto de lo que solo sabe el autor** — la anécdota real y sus tiempos quedan como recuadros por completar (no se inventan); las cifras salen de corridas reproducibles; y lo que no se midió (la IA con un modelo real) se dice como pendiente.
+- **D-068 · Los errores se guardan como historias, no como logs** — cada caso es una tarjeta con la marca (diseño · código · diferencia · hallazgos · `diff` de la causa) que se entiende sin contexto; los que fallan se guardan solos en cada corrida de `evals`, y todos se regeneran con `npm run casos`. Los errores del propio desarrollo van a mano en `docs/casos/bugs-de-desarrollo/`.
+- **D-069 · Solo se versiona lo elegido** — 36 tarjetas pesan ~13 MB; el repositorio guarda las ~9 historias curadas (lista en `.gitignore` y `docs/casos/historias.md`) y el resto se regenera. El JPEG (calidad 84, 1,5x) pesa ~3 veces menos que el PNG y es igual de legible.
+- **D-070 · Si la región es muy ancha, los paneles se apilan** — en tres columnas, tres tarjetas en fila quedaban diminutas e ilegibles (se vio al revisar la primera tarjeta); a partir de una relación ancho/alto de 2, los paneles van a todo el ancho.
+- **D-071 · Las rutas relativas se cuentan desde donde se escribió el comando** — `npm run -w` ejecuta desde la carpeta del paquete (`INIT_CWD` lo corrige); antes `out/evals` caía dentro de `packages/evals` sin que nadie lo notara.
+- **D-072 · Un documento que se edita con sustituciones de texto se verifica** — las ediciones automáticas de `CLAUDE.md` fallaron en silencio (un título mal puesto hizo que las siguientes no encontraran dónde insertar): se perdieron D-057…D-071 y la Fase 7 quedó sin marcar, y nadie lo notó hasta mirar el archivo. Ahora una prueba exige que existan todas las decisiones, numeradas sin huecos, y las diez fases marcadas.
 
-## El reporte (app web)
-
-`apps/report` es una app Next.js que **lee `report.json` y sus imágenes de una carpeta** (no se compila con los datos): `paridad … --open` la levanta en `127.0.0.1` en un puerto libre y abre el navegador. Muestra el puntaje grande con su fórmula y desglose, el conteo por severidad y qué se comparó; cuatro vistas (**lado a lado, superpuesta con divisor, transparencia ajustable, mapa de calor** con regiones clicables); la lista de hallazgos filtrable por severidad y tipo, donde al hacer clic se **resaltan las cajas en ambas imágenes** y se muestra lo esperado contra lo obtenido; exportación a **Markdown** (listo para un issue de GitHub, con lo que se ve en la lista) y **PDF**; y **pestañas por tamaño** si se abren varios reportes.
-
-Accesible por diseño y **auditado con axe-core** (WCAG 2.1 AA) en cada vista: se usa con teclado (pestañas con flechas/Inicio/Fin, enlace «Saltar al contenido»), los colores cumplen contraste (una prueba lo calcula con el motor de `core`) y **la severidad nunca depende solo del color** (cada una lleva su forma y su texto: ■ crítica, ▲ alta, ◆ media, ● baja).
-
-## Decisiones
+## Estado de fases
 
 - [x] **Fase 0** · Planificación y base
 - [x] **Fase 1** · Capturar la página construida
@@ -215,6 +231,6 @@ Accesible por diseño y **auditado con axe-core** (WCAG 2.1 AA) en cada vista: s
 - [x] **Fase 4** · Diferencia visual
 - [x] **Fase 5** · Evaluaciones
 - [x] **Fase 6** · Capa de IA (⚠ construida y probada con modelos falsos; falta medir con una clave real, ver D-053)
-- [ ] Fase 7 · Reporte
+- [x] **Fase 7** · El reporte
 - [x] **Fase 8** · Integración y skill (⚠ la Action no está probada en GitHub real)
 - [x] **Fase 9** · Caso de estudio (borrador en `docs/caso-de-estudio.md`; faltan la anécdota real y la cifra con IA)
