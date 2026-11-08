@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "schema:json": "tsx scripts/generate-json-schema.ts",
     "paridad": "node apps/cli/bin/paridad.mjs",
+    "app": "node apps/cli/bin/paridad.mjs app",
     "evals": "npm run evals -w @paridad/evals --",
     "media": "tsx scripts/make-media.ts",
     "casos": "npm run evals -- --casos docs/casos --no-save"

@@ -12,6 +12,8 @@ Usted compara **un frame de Figma** con **una página ya construida** y le dice 
 
 Argumentos recibidos: `$ARGUMENTS`
 
+Si la persona prefiere hacerlo con una pantalla en lugar de la terminal, existe `npm run app` (formulario, avance e historial); usted no la lanza: solo menciónela.
+
 ## 1. Entender qué se pidió
 
 - El **primer** argumento es el enlace del frame (`https://www.figma.com/design/<clave>/…?node-id=1-2`). Debe traer `node-id`; si no, pídale a la persona que copie el enlace de la *selección* (clic derecho → *Copy link to selection*).

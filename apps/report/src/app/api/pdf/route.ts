@@ -1,4 +1,5 @@
 import { isLocalHost } from "../../../lib/local.ts";
+import { entryById, isFolderName, workspaceId } from "../../../lib/workspace.ts";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -10,18 +11,23 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   const url = new URL(req.url);
   if (!isLocalHost(url.hostname)) return Response.json({ error: "El PDF solo se genera desde localhost." }, { status: 400 });
+  // `?c=<carpeta>`: una comparación hecha desde la app; `?tab=<n>`: los reportes que abrió «paridad … --open».
+  const folder = url.searchParams.get("c");
   const tab = url.searchParams.get("tab") ?? "0";
-  if (!/^\d{1,3}$/.test(tab)) return Response.json({ error: "Pestaña inválida." }, { status: 400 });
+  if (folder !== null) {
+    if (!isFolderName(folder) || !entryById(workspaceId(folder))) return Response.json({ error: "No encuentro esa comparación." }, { status: 404 });
+  } else if (!/^\d{1,3}$/.test(tab)) return Response.json({ error: "Pestaña inválida." }, { status: 400 });
+  const target = folder !== null ? `/comparaciones/${folder}/reporte?print=1` : `/?tab=${tab}&print=1`;
 
   let browser;
   try {
     const { chromium } = await import("playwright");
     browser = await chromium.launch();
     const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
-    await page.goto(`${url.origin}/?tab=${tab}&print=1`, { waitUntil: "networkidle" });
+    await page.goto(`${url.origin}${target}`, { waitUntil: "networkidle" });
     await page.evaluate(() => document.fonts.ready);
     const pdf = await page.pdf({ format: "A4", printBackground: true, margin: { top: "14mm", bottom: "14mm", left: "12mm", right: "12mm" } });
-    return new Response(new Uint8Array(pdf), { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="paridad-reporte-${tab}.pdf"`, "cache-control": "no-store" } });
+    return new Response(new Uint8Array(pdf), { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="paridad-reporte-${folder ?? tab}.pdf"`, "cache-control": "no-store" } });
   } catch (error) {
     return Response.json({ error: `No se pudo generar el PDF: ${error instanceof Error ? error.message : String(error)}. Puede usar «Imprimir» y guardar como PDF desde el navegador.` }, { status: 500 });
   } finally {

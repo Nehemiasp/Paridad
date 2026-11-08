@@ -228,7 +228,7 @@ describe("paridad compare", () => {
       [["compare"], /Falta --page/],
       [["compare", "--page", pageFile], /Falta el diseño/],
       [["compare", "--design", designFile, "--figma", "x", "--page", pageFile], /no los dos/],
-      [["compare", "--design", designFile, "--page", "http://localhost:3000"], /debe ser un snapshot/],
+      [["compare", "--design", designFile, "--page", "ftp://x.com/a"], /No se admite el protocolo/],
       [["compare", "--figma", landing.figmaUrl, "--page", pageFile], /debe ser la URL/],
       [["compare", "--design", "no-existe.json", "--page", pageFile], /No existe el archivo/],
       [["compare", "--design", designFile, "--page", pageFile, "--config", "no-hay.ts"], /No existe el archivo de configuración/],
@@ -249,6 +249,35 @@ describe("paridad compare", () => {
     expect(code).toBe(0);
     expect(io.stdout).toContain("Puntaje de paridad: 100 / 100");
     for (const f of ["design/snapshot.json", "design/design.png", "page/snapshot.json", "page/screenshot.png", "report.json"]) expect(existsSync(join(out, f)), f).toBe(true);
+  });
+
+  it("modo mixto: diseño guardado (sin Figma ni token) + captura de la página en vivo", async () => {
+    const out = dir();
+    const io = memoryIo();
+    const fetchNever: FetchLike = async () => {
+      throw new Error("no debe llamar a Figma");
+    };
+    const code = await run(["compare", "--design", designFile, "--page", pathToFileURL(landing.pageIndex).href, "--out", out], io, { cwd: dir(), env: {}, fetch: fetchNever });
+    expect(io.stderr).toBe("");
+    expect(code).toBe(0);
+    expect(io.stdout).toContain("Puntaje de paridad: 100 / 100");
+    // El reporte es autocontenido: la imagen del diseño se copia dentro de la carpeta de salida.
+    for (const f of ["design.png", "page/snapshot.json", "page/screenshot.png", "report.json"]) expect(existsSync(join(out, f)), f).toBe(true);
+  });
+});
+
+describe("paridad app", () => {
+  it("levanta la app en la carpeta de trabajo indicada (relativa a donde se escribió el comando)", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "paridad-app-"));
+    const seen: string[] = [];
+    expect(await run(["app", "--workspace", "mis-comparaciones"], memoryIo(), { cwd, openApp: async (w) => void seen.push(w) })).toBe(0);
+    expect(seen).toEqual([join(cwd, "mis-comparaciones")]);
+  });
+  it("por defecto usa out/comparaciones", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "paridad-app-"));
+    const seen: string[] = [];
+    await run(["app"], memoryIo(), { cwd, openApp: async (w) => void seen.push(w) });
+    expect(seen).toEqual([join(cwd, "out", "comparaciones")]);
   });
 });
 

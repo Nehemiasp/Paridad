@@ -53,8 +53,9 @@ async function waitUntilReady(url: string, child: ChildProcess, timeoutMs: numbe
  * Levanta la app del reporte (Next.js) en localhost, en un puerto libre, apuntando a las carpetas indicadas.
  * Escucha solo en 127.0.0.1 y sin telemetría. Si la app está compilada usa `next start`; si no, `next dev`.
  */
-export async function startReportServer(entries: ReportEntryInput[], options: { timeoutMs?: number } = {}): Promise<RunningReport> {
-  if (entries.length === 0) throw new Error("No hay reportes que abrir.");
+export async function startReportServer(entries: ReportEntryInput[], options: { timeoutMs?: number; workspace?: string } = {}): Promise<RunningReport> {
+  // Con `workspace` (la app de comparaciones) el servidor puede arrancar sin ningún reporte: se crean desde la pantalla.
+  if (entries.length === 0 && !options.workspace) throw new Error("No hay reportes que abrir.");
   for (const e of entries) {
     if (!existsSync(join(e.dir, "report.json"))) throw new Error(`No hay report.json en ${resolve(e.dir)}. Genérelo con «paridad compare».`);
   }
@@ -65,7 +66,13 @@ export async function startReportServer(entries: ReportEntryInput[], options: { 
 
   const child = spawn(process.execPath, [nextBin, built ? "start" : "dev", "-p", String(port), "-H", "127.0.0.1"], {
     cwd: appDir,
-    env: { ...process.env, PARIDAD_REPORTS: JSON.stringify(entries.map((e) => ({ dir: resolve(e.dir), ...(e.label ? { label: e.label } : {}) }))), NEXT_TELEMETRY_DISABLED: "1" },
+    env: {
+      ...process.env,
+      PARIDAD_REPORTS: JSON.stringify(entries.map((e) => ({ dir: resolve(e.dir), ...(e.label ? { label: e.label } : {}) }))),
+      PARIDAD_ROOT: resolve(appDir, "..", ".."),
+      ...(options.workspace ? { PARIDAD_WORKSPACE: resolve(options.workspace) } : {}),
+      NEXT_TELEMETRY_DISABLED: "1",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let log = "";

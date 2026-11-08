@@ -1,6 +1,6 @@
 import { Command, CommanderError } from "commander";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { AiClient } from "@paridad/ai";
 import { capturePage, writeCapture } from "@paridad/capture";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
@@ -25,6 +25,8 @@ const defaultIo: Io = {
 export interface Deps {
   /** Sustituye a «levantar el servidor y abrir el navegador» (en las pruebas): recibe las carpetas de los reportes. */
   open?: (entries: ReportEntryInput[]) => Promise<void>;
+  /** Sustituye a «levantar la app de comparaciones» (en las pruebas): recibe la carpeta de trabajo. */
+  openApp?: (workspace: string) => Promise<void>;
   /** Sustituye al modelo de la IA en las pruebas. */
   aiClient?: AiClient;
   fetch?: FetchLike;
@@ -191,6 +193,26 @@ export function buildProgram(io: Io = defaultIo, deps: Deps = {}): Command {
       const labels = opts.label ?? [];
       if (labels.length > opts.dir.length) throw new Error("Hay más --label que --dir.");
       await openReports(opts.dir.map((dir, i) => ({ dir, ...(labels[i] ? { label: labels[i] } : {}) })), io, deps);
+    });
+
+  program
+    .command("app")
+    .description("Abre la app de Paridad en el navegador: la pantalla «Nueva comparación», el avance y el historial de reportes.")
+    .option("--workspace <carpeta>", "carpeta donde se guardan las comparaciones hechas desde la app", "out/comparaciones")
+    .option("--no-open", "levantar la app sin abrir el navegador")
+    .action(async (opts: { workspace: string; open: boolean }) => {
+      const workspace = resolve(deps.cwd ?? process.cwd(), opts.workspace);
+      if (deps.openApp) return deps.openApp(workspace);
+      mkdirSync(workspace, { recursive: true });
+      io.out("\nAbriendo la app de Paridad…\n");
+      const server = await startReportServer([], { workspace });
+      const url = `${server.url}/nueva`;
+      io.out(`App en ${url}${server.mode === "dev" ? "  (modo desarrollo: ejecute «npm run build -w @paridad/report» para que abra más rápido)" : ""}\n`);
+      io.out(`Las comparaciones se guardan en ${workspace}\n`);
+      if (opts.open && !openInBrowser(url)) io.out("No pude abrir el navegador; abra esa dirección a mano.\n");
+      io.out("Presione Ctrl+C para cerrar.\n");
+      await untilInterrupted();
+      await server.close();
     });
 
   return program;

@@ -45,6 +45,8 @@ Motivo de cuadros con píldora azul.
 | `npm run paridad -- compare … --open` | Al terminar abre el reporte en el navegador (Ctrl+C cierra el servidor local). |
 | `npm run paridad -- report --dir out/escritorio --dir out/movil --label Escritorio --label Móvil` | Abre reportes ya generados; con varias carpetas, una pestaña por tamaño. |
 | `npm run build -w @paridad/report` | Compila la app del reporte (si no está compilada, `--open` usa el modo desarrollo, más lento al arrancar). |
+| `npm run app` | Abre la **app de comparaciones** en `127.0.0.1`: pantalla «Nueva comparación» (enlace del frame + URL de la página), avance en vivo, reporte e historial en `out/comparaciones/` (`--workspace <carpeta>`, `--no-open`). El token de Figma solo se lee de `.env.local`; la pantalla nunca lo pide. «Probar con el ejemplo» funciona sin token. |
+| `npm run paridad -- compare --design d.json --page <URL>` | Modo **mixto**: diseño ya leído (sin llamar a Figma) + captura de la página en vivo. Es lo que usa el modo ejemplo de la app. |
 | `npm run casos` | Genera el cuaderno de casos: una **tarjeta** `historia.jpg` por mutación (diseño, código, diferencia, hallazgos y el `diff` que causó el error) con su `caso.md`, en `docs/casos/` (36 casos, ~13 MB; solo se versionan los elegidos). Cada `npm run evals` además guarda solo los casos que **fallan** en `out/evals/fallos/`. |
 | `npm run paridad -- compare … --ai` | Agrega la capa de IA (Claude, visión): agrupa hallazgos, propone descartar ruido evidente y redacta con sugerencia de CSS. Apagada por defecto; requiere `ANTHROPIC_API_KEY`. `--ai-model`, `--ai-max-cost 0.05`, `--no-ai-images`; `--ai-simulated` prueba la tubería sin modelo. |
 | `npm run evals` | Mide si Paridad acierta: aplica errores conocidos a la página de ejemplo y reporta detección, precisión y severidad por tipo de error, los falsos positivos de la página de control y el cambio respecto a la corrida anterior. Sale con código 1 si no se cumplen las metas. `-- --validate` revisa las mutaciones propuestas sin abrir el navegador; `-- --only a,b` corre solo esas. |
@@ -63,8 +65,8 @@ packages/visual/    diferencia de píxeles (pixelmatch), regiones y mapa de calo
 packages/evals/     mutaciones (datos JSON), medición de aciertos, tabla y comparación entre corridas    [existe]
 .claude/agents/     `mutation-proposer`: subagente que propone mutaciones nuevas como datos                [existe]
 packages/ai/        capa opcional con Claude: agrupa, descarta ruido, redacta; valida contra la evidencia [existe]
-apps/cli/           `paridad capture|figma|compare …` (`capture`, `figma` y `compare`; `--no-visual` omite píxeles)  [existe]
-apps/report/        reporte web (Next.js 16): vistas, hallazgos filtrables, Markdown y PDF                [existe]
+apps/cli/           `paridad capture|figma|compare|app …` (`--no-visual` omite píxeles)                    [existe]
+apps/report/        app web (Next.js 16): reporte (vistas, hallazgos, Markdown, PDF) y «Nueva comparación» [existe]
 ```
 
 Los paquetes se crean al llegar su fase (no hay andamiaje vacío).
@@ -145,6 +147,12 @@ Lo que queda por debajo de su **tolerancia** es ruido y no se reporta.
 
 Accesible por diseño y **auditado con axe-core** (WCAG 2.1 AA) en cada vista: se usa con teclado (pestañas con flechas/Inicio/Fin, enlace «Saltar al contenido»), los colores cumplen contraste (una prueba lo calcula con el motor de `core`) y **la severidad nunca depende solo del color** (cada una lleva su forma y su texto: ■ crítica, ▲ alta, ◆ media, ● baja).
 
+### La pantalla «Nueva comparación» (extensión posterior a las diez fases)
+
+`npm run app` levanta la misma app en `127.0.0.1` sin ningún reporte y abre `/nueva`: un formulario (enlace del frame de Figma, URL de la página, ancho, escala, zonas a ignorar, IA opcional con tope de costo), el **estado del entorno** (token de Figma, Chromium y clave de IA: solo «configurado / falta», nunca el valor), el **avance en vivo** (`/comparaciones/<id>`, sondeo cada segundo; al terminar abre el reporte) y el **historial** (`out/comparaciones/*`, con casillas para abrir varias juntas como pestañas por tamaño; no hay botón de borrar). «Probar con el ejemplo (Casa Nube)» usa el diseño guardado y la página de ejemplo, sin Figma ni token. Un tamaño por comparación. El servidor valida todo (`lib/validate.ts`), lanza el CLI como proceso hijo (un trabajo a la vez, 3 minutos máximo, salida sin secretos) y protege las rutas que ejecutan cosas con `Host`/`Origin` locales y un token de sesión (`lib/guard.ts`).
+
+⚠ **Sin validar con Figma real:** aquí no hay token, así que la lectura de Figma desde la pantalla se probó hasta el punto de «sin token → mensaje claro y ningún proceso»; el camino con token usa el mismo comando ya probado con datos sintéticos (D-029).
+
 ## Decisiones
 
 Una línea cada una: qué se decidió y por qué.
@@ -221,6 +229,15 @@ Una línea cada una: qué se decidió y por qué.
 - **D-070 · Si la región es muy ancha, los paneles se apilan** — en tres columnas, tres tarjetas en fila quedaban diminutas e ilegibles (se vio al revisar la primera tarjeta); a partir de una relación ancho/alto de 2, los paneles van a todo el ancho.
 - **D-071 · Las rutas relativas se cuentan desde donde se escribió el comando** — `npm run -w` ejecuta desde la carpeta del paquete (`INIT_CWD` lo corrige); antes `out/evals` caía dentro de `packages/evals` sin que nadie lo notara.
 - **D-072 · Un documento que se edita con sustituciones de texto se verifica** — las ediciones automáticas de `CLAUDE.md` fallaron en silencio (un título mal puesto hizo que las siguientes no encontraran dónde insertar): se perdieron D-057…D-071 y la Fase 7 quedó sin marcar, y nadie lo notó hasta mirar el archivo. Ahora una prueba exige que existan todas las decisiones, numeradas sin huecos, y las diez fases marcadas.
+- **D-073 · La app lanza el CLI como proceso hijo, no importa el motor** — Playwright y la captura quedan fuera del servidor de Next (un fallo no lo tumba) y se reutiliza el comando ya probado en lugar de duplicar la lógica; los argumentos van en arreglo, sin shell, y cada valor pegado a su opción con `--opción=valor` para que nunca se lea como otra opción.
+- **D-074 · Un trabajo a la vez, con tiempo máximo** — Chromium y la red ya son carga suficiente para una máquina personal; el segundo envío recibe «ya hay una comparación en curso» (409) y a los 3 minutos el proceso se mata y se informa. Las comprobaciones (token, clave, Chromium) van **antes** de lanzar nada: sin token no nace ningún proceso.
+- **D-075 · El token de Figma solo vive en `.env.local`** — decisión del autor: la pantalla informa si está configurado y explica cómo crearlo, pero no tiene campo para pegarlo, y ni el token ni la clave de IA viajan al navegador ni salen en la salida del comando (`maskSecrets` reemplaza sus valores y las formas de token conocidas por `***`).
+- **D-076 · Las rutas que ejecutan cosas exigen origen local y un token de sesión** — es un formulario web que lanza procesos: `Host` y `Origin` deben ser locales y coincidir, y llega una cabecera propia (`x-paridad`) con un token aleatorio incrustado al servir la página. Otra pestaña del navegador no puede leerlo (CORS) y el `Host` frena el DNS rebinding. Es defensa en profundidad: el servidor ya solo escucha en `127.0.0.1`.
+- **D-077 · El servidor valida todo, el formulario solo ayuda** — URL de Figma con `parseFigmaUrl`, URL de la página con `assertAllowedUrl` (solo http, https y file; sin usuario ni contraseña), ancho entero 200–4000, máximo 20 selectores de 200 caracteres sin caracteres de control. Los mensajes van en español junto a cada campo. Para no meter Playwright en el bundle de Next, esos dos validadores puros se exportan por subruta (`@paridad/figma/url`, `@paridad/capture/url`).
+- **D-078 · El estado del servidor vive en `globalThis`** — Next puede cargar un módulo más de una vez (una copia por ruta); con una variable de módulo, la ruta que crea el trabajo y la que informa su avance no verían el mismo trabajo ni el mismo token de sesión.
+- **D-079 · Los ids de comparación son carpetas que crea la app (`c:<carpeta>`, solo `[a-z0-9-]`)** — `entryById` es la única forma de llegar a una carpeta de comparación; `..`, rutas y mayúsculas no existen. `safeResolve` sigue siendo la única puerta a los archivos (solo imágenes). Una prueba comprueba imágenes, reporte y PDF con ids hostiles.
+- **D-080 · Se lee siempre el cuerpo de una respuesta** — una prueba de extremo a extremo se colgaba esperando «red inactiva» porque la rama 404 del avance salía sin leer el cuerpo y la petición quedaba abierta; además, esa misma prueba descubrió que la página de avance no tenía `<h1>`.
+- **D-081 · El historial es el disco, no la memoria** — el estado de un trabajo se pierde si la app se reinicia, pero el reporte ya está en `out/comparaciones/`: abrir `/comparaciones/<id>` de uno terminado redirige a su reporte, y uno desconocido da un mensaje claro en lugar de una pantalla rota.
 
 ## Estado de fases
 
@@ -234,3 +251,4 @@ Una línea cada una: qué se decidió y por qué.
 - [x] **Fase 7** · El reporte
 - [x] **Fase 8** · Integración y skill (⚠ la Action no está probada en GitHub real)
 - [x] **Fase 9** · Caso de estudio (borrador en `docs/caso-de-estudio.md`; faltan la anécdota real y la cifra con IA)
+- [x] **Extensión 1** · Pantalla «Nueva comparación», avance e historial (⚠ pendiente de su visto bueno; la lectura de Figma desde la pantalla no se probó con un token real)

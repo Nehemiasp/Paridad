@@ -37,7 +37,7 @@ export function ExportBar({ report, findings, label, entryId }: { report: Report
         <button type="button" className="btn" onClick={download}>
           Descargar Markdown
         </button>
-        <a className="btn" href={`/api/pdf?tab=${encodeURIComponent(entryId)}`} download>
+        <a className="btn" href={entryId.startsWith("c:") ? `/api/pdf?c=${encodeURIComponent(entryId.slice(2))}` : `/api/pdf?tab=${encodeURIComponent(entryId)}`} download>
           Descargar PDF
         </a>
         <button type="button" className="btn" onClick={() => window.print()}>

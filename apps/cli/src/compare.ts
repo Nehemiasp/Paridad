@@ -107,38 +107,35 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
   let designImage: string | undefined;
   let pageImage: string | undefined;
 
-  if (opts.design) {
-    // ── Modo archivos ────────────────────────────────────────────────────
-    if (isUrl(opts.page)) throw new Error("Con --design, --page debe ser un snapshot (.json). Para capturar una URL use --figma junto con --page <URL>.");
-    const dPath = resolve(cwd, opts.design);
-    const pPath = resolve(cwd, opts.page);
-    design = readSnapshotFile(dPath, "diseño");
-    page = readSnapshotFile(pPath, "página");
-    // El reporte debe ser autocontenido (se comparte la carpeta y la app solo sirve archivos de ella): si la imagen
-    // está fuera de la carpeta de salida, se copia adentro.
-    const bring = (snapPath: string, image: string | undefined, name: string): string | undefined => {
-      if (!image) return undefined;
-      const source = resolve(dirname(snapPath), image);
-      if (!existsSync(source)) return undefined;
-      const inside = relative(outDir, source);
-      if (!inside.startsWith("..") && !isAbsolute(inside)) return source;
-      const target = join(outDir, name);
-      if (resolve(target) !== source) copyFileSync(source, target);
-      return target;
-    };
-    designImage = bring(dPath, design.canvas.image?.path, "design.png");
-    pageImage = bring(pPath, page.canvas.image?.path, "page.png");
-    paths.design = { snapshot: rel(dPath), ...(designImage ? { image: rel(designImage) } : {}) };
-    paths.page = { snapshot: rel(pPath), ...(pageImage ? { image: rel(pageImage) } : {}) };
-  } else {
-    // ── Modo tubería: Figma + captura de la página ────────────────────────
-    if (!isUrl(opts.page)) throw new Error("Con --figma, --page debe ser la URL de la página (http://localhost:3000, https://…).");
-    const env = deps.env ?? loadEnvLocal(cwd);
-    if (!env.FIGMA_TOKEN) throw new Error("Falta el token de Figma. Defina FIGMA_TOKEN en .env.local (vea .env.example).");
-    const scale = parseScale(opts.scale);
+  // El reporte debe ser autocontenido (se comparte la carpeta y la app solo sirve archivos de ella): si la imagen
+  // de un snapshot está fuera de la carpeta de salida, se copia adentro.
+  const bring = (snapPath: string, image: string | undefined, name: string): string | undefined => {
+    if (!image) return undefined;
+    const source = resolve(dirname(snapPath), image);
+    if (!existsSync(source)) return undefined;
+    const inside = relative(outDir, source);
+    if (!inside.startsWith("..") && !isAbsolute(inside)) return source;
+    const target = join(outDir, name);
+    if (resolve(target) !== source) copyFileSync(source, target);
+    return target;
+  };
+  const pageIsUrl = isUrl(opts.page);
+  let env: Record<string, string | undefined> | undefined;
+  const getEnv = () => (env ??= deps.env ?? loadEnvLocal(cwd));
+  const scale = parseScale(opts.scale);
 
+  // ── Diseño: archivo guardado o lectura de Figma ───────────────────────
+  if (opts.design) {
+    const dPath = resolve(cwd, opts.design);
+    design = readSnapshotFile(dPath, "diseño");
+    designImage = bring(dPath, design.canvas.image?.path, "design.png");
+    paths.design = { snapshot: rel(dPath), ...(designImage ? { image: rel(designImage) } : {}) };
+  } else {
+    if (!pageIsUrl) throw new Error("Con --figma, --page debe ser la URL de la página (http://localhost:3000, https://…).");
+    const token = getEnv().FIGMA_TOKEN;
+    if (!token) throw new Error("Falta el token de Figma. Defina FIGMA_TOKEN en .env.local (vea .env.example).");
     io.out("Leyendo el frame de Figma…\n");
-    const client = new FigmaClient({ token: env.FIGMA_TOKEN, cache: new DiskCache(join(cwd, ".paridad-cache", "figma")), refresh: opts.refresh === true, ...(deps.fetch ? { fetch: deps.fetch } : {}) });
+    const client = new FigmaClient({ token, cache: new DiskCache(join(cwd, ".paridad-cache", "figma")), refresh: opts.refresh === true, ...(deps.fetch ? { fetch: deps.fetch } : {}) });
     const fetched = await fetchDesignSnapshot({ url: opts.figma!, client, scale });
     for (const w of fetched.warnings) io.err(`Aviso (diseño): ${w}\n`);
     design = fetched.snapshot;
@@ -148,7 +145,15 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
     if (fetched.image) writeFileSync(join(designDir, design.canvas.image?.path ?? "design.png"), fetched.image);
     paths.design = { snapshot: rel(join(designDir, "snapshot.json")), ...(fetched.image ? { image: rel(join(designDir, design.canvas.image?.path ?? "design.png")) } : {}) };
     if (fetched.image) designImage = join(designDir, design.canvas.image?.path ?? "design.png");
+  }
 
+  // ── Página: snapshot guardado o captura en vivo ───────────────────────
+  if (!pageIsUrl) {
+    const pPath = resolve(cwd, opts.page);
+    page = readSnapshotFile(pPath, "página");
+    pageImage = bring(pPath, page.canvas.image?.path, "page.png");
+    paths.page = { snapshot: rel(pPath), ...(pageImage ? { image: rel(pageImage) } : {}) };
+  } else {
     const width = opts.width ? parsePositiveInt("--width", opts.width) : Math.round(design.canvas.width);
     io.out(`Capturando ${opts.page} a ${width} px (el ancho del frame)…\n`);
     const captured = await capturePage({
@@ -166,11 +171,13 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
     pageImage = written.screenshotPath;
   }
 
+  io.out("Comparando el diseño con la página…\n");
   let report = compare(design, page, { config, paths });
 
   // ── Diferencia visual (Fase 4) ─────────────────────────────────────────
   if (opts.visual !== false) {
     if (designImage && pageImage && existsSync(designImage) && existsSync(pageImage)) {
+      io.out("Calculando la diferencia visual…\n");
       const rects = (s: Snapshot): Box[] => s.ignore.flatMap((z) => ("rect" in z ? [z.rect] : []));
       const result = visualDiff({
         design: { png: readFileSync(designImage), scale: design.canvas.scale },

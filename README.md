@@ -29,6 +29,18 @@ cp .env.example .env.local        # y complete FIGMA_TOKEN
 
 El token de Figma es personal y de solo lectura (Settings → Security → Personal access tokens, con permiso de lectura de archivos). Vive en `.env.local`, que **nunca se sube** al repositorio.
 
+## La app (sin terminal)
+
+```bash
+npm run app
+```
+
+Abre en su navegador (solo en `127.0.0.1`) la pantalla **«Nueva comparación»**: pegue el enlace del frame de Figma y la dirección de la página, pulse **Comparar**, vea el avance y caiga en el reporte. Las comparaciones anteriores quedan en `out/comparaciones/` y en el historial de la pantalla.
+
+- **Probar con el ejemplo (Casa Nube)** usa el diseño y la página de ejemplo guardados: no necesita Figma ni token, sirve para ver cómo funciona todo.
+- El **token de Figma** solo se lee de `.env.local`; la pantalla le dice si está configurado y cómo crearlo, pero nunca se lo pide.
+- Un tamaño por comparación: para escritorio y móvil haga dos y ábralas juntas desde el historial (una pestaña por tamaño).
+
 ## Uso
 
 ```bash

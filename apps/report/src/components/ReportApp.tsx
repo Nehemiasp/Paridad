@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Category, Report, Severity } from "@paridad/core";
 import { filterFindings, NO_FILTERS, toggle, type Filters } from "../lib/filters.ts";
 import { highlightsFor } from "../lib/geometry.ts";
+import { AppNav } from "./AppNav.tsx";
 import { ExportBar } from "./ExportBar.tsx";
 import { FindingsPanel } from "./FindingsPanel.tsx";
 import { Header } from "./Header.tsx";
@@ -107,6 +108,11 @@ function Empty() {
         <p className="muted" style={{ marginTop: 12 }}>
           También puede abrir uno que ya tenga: <code>npm run paridad -- report --dir out/compare</code>
         </p>
+        <p style={{ marginTop: 16 }}>
+          <a className="btn primary" href="/nueva">
+            Hacer una nueva comparación aquí
+          </a>
+        </p>
       </section>
     </main>
   );
@@ -124,6 +130,7 @@ export function ReportApp({ items, initialTab, print }: { items: Item[]; initial
         Saltar al contenido
       </a>
       <main className={`shell${print ? " print-mode" : ""}`} id="contenido">
+        {!print ? <AppNav current="reporte" /> : null}
         {items.length > 1 ? (
           <div style={{ marginTop: 24 }}>
             <Tablist items={items.map((i) => ({ id: i.id, label: i.label }))} selected={item.id} onSelect={setTab} label="Tamaño de ventana" prefix="tam" className="tabs" tabClassName="tab" />
