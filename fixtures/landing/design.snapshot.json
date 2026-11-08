@@ -210,7 +210,7 @@
           "style": "solid",
           "color": "#0e1116"
         },
-        "radius": 999
+        "radius": 21
       },
       "z": 5
     },
@@ -306,7 +306,7 @@
       },
       "style": {
         "background": "#043565",
-        "radius": 999
+        "radius": 28
       },
       "z": 9
     },

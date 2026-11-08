@@ -40,6 +40,7 @@ Motivo de cuadros con píldora azul.
 | `npm run typecheck` | `tsc --noEmit` en la raíz y en cada paquete. |
 | `npm run schema:json` | Regenera `docs/snapshot.schema.json` desde Zod. |
 | `npm run paridad -- capture --page <url> --width 1440` | Captura una página → `snapshot.json` + `screenshot.png` (por defecto en `out/capture`). |
+| `npm run paridad -- figma --url <frame>` | Lee un frame de Figma → `snapshot.json` + `design.png` (por defecto en `out/design`). Requiere `FIGMA_TOKEN` en `.env.local`. |
 
 ## Estructura
 
@@ -49,11 +50,11 @@ fixtures/           datos de prueba compartidos; landing/ = página «Casa Nube�
 scripts/            hook de pruebas y generador del JSON Schema                                          [existe]
 docs/               snapshot.md y snapshot.schema.json                                                   [existe]
 packages/capture/   Playwright: página construida → snapshot                                             [existe]
-packages/figma/     API de Figma: frame → snapshot                                                       [Fase 2]
+packages/figma/     API REST de Figma: frame → snapshot, con caché                                       [existe]
 packages/visual/    diferencia de píxeles y mapa de calor                                                [Fase 4]
 packages/evals/     mutaciones y medición de aciertos                                                    [Fase 5]
 packages/ai/        capa opcional con Claude                                                             [Fase 6]
-apps/cli/           `paridad capture|figma|compare …` (hoy solo `capture`)                                [existe]
+apps/cli/           `paridad capture|figma|compare …` (hoy `capture` y `figma`)                             [existe]
 apps/report/        reporte web (Next.js)                                                                [Fase 7]
 ```
 
@@ -93,12 +94,18 @@ Una línea cada una: qué se decidió y por qué.
 - **D-023 · Solo `http`, `https` y `file`; nunca se siguen enlaces** — cumple la regla de capturar únicamente lo que se indica.
 - **D-024 · Zonas a ignorar por selector se resuelven también a rectángulos** — la diferencia visual (Fase 4) trabaja con píxeles y necesita rectángulos; el selector se conserva para el reporte.
 - **D-025 · Límites conocidos de la captura (documentados, no escondidos)** — el orden `z` es el del DOM (no se resuelven contextos de apilamiento con `z-index`); no entra en Shadow DOM ni iframes; el texto mezclado (`<p>Hola <b>mundo</b></p>`) produce un elemento por cada nodo con texto propio; no hay imágenes de fondo ni valores de `<input>`.
+- **D-026 · En Figma, el texto usa el ancho de `absoluteRenderBounds` (glifos) y la altura de la capa** — la capa de ancho fijo es más ancha que el texto; el DOM mide el texto tight. Así ambos lados miden lo mismo (D-009).
+- **D-027 · Se traduce el relleno visible de más arriba; lo que no cabe en el formato se avisa, no se esconde** — degradados, bordes desiguales, trazos exteriores/centrados, rotación, estilos mezclados y tipos de nodo desconocidos salen como `Aviso:` en el CLI.
+- **D-028 · Solo API REST, con caché en disco y el token confinado** — `GET /v1/files/:key/nodes` y `GET /v1/images/:key`; las variables (solo Enterprise) son un extra que falla en silencio. El token viaja solo a `api.figma.com` (nunca a la URL del PNG), nunca se guarda en la caché ni sale en errores. Caché de 24 h por hash de la petición; `--refresh` la ignora.
+- **D-029 · ⚠ Los datos de Figma de las pruebas son sintéticos, no una grabación real** — se construyeron con la forma documentada de la API (`fixtures/landing/figma/`). Falta validar el traductor con un archivo real y un token propio; hasta entonces la Fase 2 está probada contra la documentación, no contra Figma.
+- **D-030 · Los radios se normalizarán al comparar (Fase 3)** — un diseñador escribe radio = mitad del alto (21, 28) y el CSS suele poner 999px; ambos pintan igual. La regla debe recortar el radio a la mitad del lado menor antes de comparar.
+- **D-031 · Un proyecto de Vitest por paquete exige listarlo en `projects`** — una vez `apps/*` quedó fuera y sus pruebas no corrían sin avisar; `scripts/workspaces.test.ts` lo vigila.
 
 ## Estado de fases
 
 - [x] **Fase 0** · Planificación y base
 - [x] **Fase 1** · Capturar la página construida
-- [ ] Fase 2 · Leer el diseño desde Figma
+- [x] **Fase 2** · Leer el diseño desde Figma (⚠ pendiente validar con un archivo real, ver D-029)
 - [ ] Fase 3 · Motor de comparación
 - [ ] Fase 4 · Diferencia visual
 - [ ] Fase 5 · Evaluaciones

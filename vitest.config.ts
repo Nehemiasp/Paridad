@@ -4,6 +4,6 @@ import { defineConfig } from "vitest/config";
 // que se editó (`npm test -w packages/core`), que es lo que usa el hook.
 export default defineConfig({
   test: {
-    projects: ["packages/*", "scripts"],
+    projects: ["packages/*", "apps/*", "scripts"],
   },
 });

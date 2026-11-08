@@ -16,6 +16,7 @@
   "dependencies": {
     "@paridad/capture": "^0.0.0",
     "@paridad/core": "^0.0.0",
+    "@paridad/figma": "^0.0.0",
     "commander": "^15.1.0",
     "tsx": "^4.23.15"
   },

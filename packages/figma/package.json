@@ -1,0 +1,20 @@
+{
+  "name": "@paridad/figma",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project @paridad/figma",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@paridad/fixtures": "^0.0.0"
+  },
+  "dependencies": {
+    "@paridad/core": "^0.0.0",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,1336 @@
+{
+  "name": "Casa Nube · diseño de ejemplo",
+  "role": "viewer",
+  "lastModified": "2026-11-07T18:30:00Z",
+  "editorType": "figma",
+  "thumbnailUrl": "",
+  "version": "1234567890",
+  "linkAccess": "view",
+  "nodes": {
+    "1:2": {
+      "document": {
+        "id": "1:2",
+        "name": "Landing 1440",
+        "type": "FRAME",
+        "scrollBehavior": "SCROLLS",
+        "blendMode": "PASS_THROUGH",
+        "clipsContent": true,
+        "absoluteBoundingBox": {
+          "x": 1200,
+          "y": 640,
+          "width": 1440,
+          "height": 927
+        },
+        "absoluteRenderBounds": {
+          "x": 1200,
+          "y": 640,
+          "width": 1440,
+          "height": 927
+        },
+        "fills": [
+          {
+            "blendMode": "NORMAL",
+            "type": "SOLID",
+            "color": {
+              "r": 0.9803921568627451,
+              "g": 0.9803921568627451,
+              "b": 0.9725490196078431,
+              "a": 1
+            }
+          }
+        ],
+        "strokes": [],
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "effects": [],
+        "children": [
+          {
+            "id": "1:17",
+            "name": "Encabezado",
+            "type": "FRAME",
+            "scrollBehavior": "SCROLLS",
+            "blendMode": "PASS_THROUGH",
+            "clipsContent": false,
+            "absoluteBoundingBox": {
+              "x": 1200,
+              "y": 640,
+              "width": 1440,
+              "height": 80
+            },
+            "absoluteRenderBounds": {
+              "x": 1200,
+              "y": 640,
+              "width": 1440,
+              "height": 80
+            },
+            "fills": [],
+            "strokes": [],
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "effects": [],
+            "children": [
+              {
+                "id": "1:10",
+                "name": "Logotipo",
+                "type": "TEXT",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "absoluteBoundingBox": {
+                  "x": 1284,
+                  "y": 663.5,
+                  "width": 127.34,
+                  "height": 32
+                },
+                "absoluteRenderBounds": {
+                  "x": 1284,
+                  "y": 667.5,
+                  "width": 127.34,
+                  "height": 24
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.054901960784313725,
+                      "g": 0.06666666666666667,
+                      "b": 0.08627450980392157,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [],
+                "strokeWeight": 1,
+                "strokeAlign": "OUTSIDE",
+                "effects": [],
+                "characters": "Casa Nube",
+                "characterStyleOverrides": [],
+                "styleOverrideTable": {},
+                "style": {
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontPostScriptName": "BricolageGrotesque-800",
+                  "fontStyle": "Regular",
+                  "fontWeight": 800,
+                  "textAutoResize": "HEIGHT",
+                  "fontSize": 24,
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "letterSpacing": 0,
+                  "lineHeightPx": 32,
+                  "lineHeightPercent": 100,
+                  "lineHeightUnit": "PIXELS"
+                }
+              },
+              {
+                "id": "1:14",
+                "name": "Navegación",
+                "type": "FRAME",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "clipsContent": false,
+                "absoluteBoundingBox": {
+                  "x": 1778.45,
+                  "y": 667.5,
+                  "width": 265.85,
+                  "height": 24
+                },
+                "absoluteRenderBounds": {
+                  "x": 1778.45,
+                  "y": 667.5,
+                  "width": 265.85,
+                  "height": 24
+                },
+                "fills": [],
+                "strokes": [],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "effects": [],
+                "children": [
+                  {
+                    "id": "1:11",
+                    "name": "Enlace Colección",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1778.45,
+                      "y": 667.5,
+                      "width": 74.81,
+                      "height": 24
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1778.45,
+                      "y": 671.5,
+                      "width": 74.81,
+                      "height": 16
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.16862745098039217,
+                          "g": 0.1843137254901961,
+                          "b": 0.21176470588235294,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Colección",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-500",
+                      "fontStyle": "Regular",
+                      "fontWeight": 500,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 16,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 24,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  },
+                  {
+                    "id": "1:12",
+                    "name": "Enlace Talleres",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1885.27,
+                      "y": 667.5,
+                      "width": 57.27,
+                      "height": 24
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1885.27,
+                      "y": 671.5,
+                      "width": 57.27,
+                      "height": 16
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.16862745098039217,
+                          "g": 0.1843137254901961,
+                          "b": 0.21176470588235294,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Talleres",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-500",
+                      "fontStyle": "Regular",
+                      "fontWeight": 500,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 16,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 24,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  },
+                  {
+                    "id": "1:13",
+                    "name": "Enlace Contacto",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1974.53,
+                      "y": 667.5,
+                      "width": 69.77,
+                      "height": 24
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1974.53,
+                      "y": 671.5,
+                      "width": 69.77,
+                      "height": 16
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.16862745098039217,
+                          "g": 0.1843137254901961,
+                          "b": 0.21176470588235294,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Contacto",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-500",
+                      "fontStyle": "Regular",
+                      "fontWeight": 500,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 16,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 24,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "1:16",
+                "name": "Botón secundario",
+                "type": "FRAME",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "clipsContent": false,
+                "absoluteBoundingBox": {
+                  "x": 2411.3900000000003,
+                  "y": 658.5,
+                  "width": 144.61,
+                  "height": 42
+                },
+                "absoluteRenderBounds": {
+                  "x": 2411.3900000000003,
+                  "y": 658.5,
+                  "width": 144.61,
+                  "height": 42
+                },
+                "fills": [],
+                "strokes": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.054901960784313725,
+                      "g": 0.06666666666666667,
+                      "b": 0.08627450980392157,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "effects": [],
+                "children": [
+                  {
+                    "id": "1:15",
+                    "name": "Texto del botón secundario",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 2432.3900000000003,
+                      "y": 669,
+                      "width": 102.61,
+                      "height": 20
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 2432.3900000000003,
+                      "y": 671.5,
+                      "width": 102.61,
+                      "height": 15
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.054901960784313725,
+                          "g": 0.06666666666666667,
+                          "b": 0.08627450980392157,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Reservar visita",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-600",
+                      "fontStyle": "Regular",
+                      "fontWeight": 600,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 15,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 20,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  }
+                ],
+                "cornerRadius": 21
+              }
+            ]
+          },
+          {
+            "id": "1:22",
+            "name": "Hero",
+            "type": "FRAME",
+            "scrollBehavior": "SCROLLS",
+            "blendMode": "PASS_THROUGH",
+            "clipsContent": false,
+            "absoluteBoundingBox": {
+              "x": 1200,
+              "y": 720,
+              "width": 1440,
+              "height": 484
+            },
+            "absoluteRenderBounds": {
+              "x": 1200,
+              "y": 720,
+              "width": 1440,
+              "height": 484
+            },
+            "fills": [],
+            "strokes": [],
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "effects": [],
+            "children": [
+              {
+                "id": "1:18",
+                "name": "Título del hero",
+                "type": "TEXT",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "absoluteBoundingBox": {
+                  "x": 1284,
+                  "y": 815.5,
+                  "width": 760,
+                  "height": 136
+                },
+                "absoluteRenderBounds": {
+                  "x": 1284,
+                  "y": 817.5,
+                  "width": 619.47,
+                  "height": 64
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.054901960784313725,
+                      "g": 0.06666666666666667,
+                      "b": 0.08627450980392157,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [],
+                "strokeWeight": 1,
+                "strokeAlign": "OUTSIDE",
+                "effects": [],
+                "characters": "Cerámica hecha con calma",
+                "characterStyleOverrides": [],
+                "styleOverrideTable": {},
+                "style": {
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontPostScriptName": "BricolageGrotesque-800",
+                  "fontStyle": "Regular",
+                  "fontWeight": 800,
+                  "textAutoResize": "HEIGHT",
+                  "fontSize": 64,
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "letterSpacing": -1.28,
+                  "lineHeightPx": 68,
+                  "lineHeightPercent": 100,
+                  "lineHeightUnit": "PIXELS"
+                }
+              },
+              {
+                "id": "1:19",
+                "name": "Bajada del hero",
+                "type": "TEXT",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "absoluteBoundingBox": {
+                  "x": 1284,
+                  "y": 976,
+                  "width": 560,
+                  "height": 60
+                },
+                "absoluteRenderBounds": {
+                  "x": 1284,
+                  "y": 981,
+                  "width": 518.38,
+                  "height": 20
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.16862745098039217,
+                      "g": 0.1843137254901961,
+                      "b": 0.21176470588235294,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [],
+                "strokeWeight": 1,
+                "strokeAlign": "OUTSIDE",
+                "effects": [],
+                "characters": "Piezas únicas para la mesa de todos los días, modeladas y horneadas en nuestro taller.",
+                "characterStyleOverrides": [],
+                "styleOverrideTable": {},
+                "style": {
+                  "fontFamily": "Instrument Sans",
+                  "fontPostScriptName": "InstrumentSans-400",
+                  "fontStyle": "Regular",
+                  "fontWeight": 400,
+                  "textAutoResize": "HEIGHT",
+                  "fontSize": 20,
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "letterSpacing": 0,
+                  "lineHeightPx": 30,
+                  "lineHeightPercent": 100,
+                  "lineHeightUnit": "PIXELS"
+                }
+              },
+              {
+                "id": "1:21",
+                "name": "Botón primario",
+                "type": "FRAME",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "clipsContent": false,
+                "absoluteBoundingBox": {
+                  "x": 1284,
+                  "y": 1076,
+                  "width": 181.28,
+                  "height": 56
+                },
+                "absoluteRenderBounds": {
+                  "x": 1284,
+                  "y": 1076,
+                  "width": 181.28,
+                  "height": 56
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.01568627450980392,
+                      "g": 0.20784313725490197,
+                      "b": 0.396078431372549,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "effects": [],
+                "children": [
+                  {
+                    "id": "1:20",
+                    "name": "Texto del botón primario",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1312,
+                      "y": 1092,
+                      "width": 125.28,
+                      "height": 24
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1312,
+                      "y": 1095.5,
+                      "width": 125.28,
+                      "height": 17
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Ver la colección",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-600",
+                      "fontStyle": "Regular",
+                      "fontWeight": 600,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 17,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 24,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  }
+                ],
+                "cornerRadius": 28
+              }
+            ]
+          },
+          {
+            "id": "1:35",
+            "name": "Tarjetas",
+            "type": "FRAME",
+            "scrollBehavior": "SCROLLS",
+            "blendMode": "PASS_THROUGH",
+            "clipsContent": false,
+            "absoluteBoundingBox": {
+              "x": 1200,
+              "y": 1204,
+              "width": 1440,
+              "height": 278
+            },
+            "absoluteRenderBounds": {
+              "x": 1200,
+              "y": 1204,
+              "width": 1440,
+              "height": 278
+            },
+            "fills": [],
+            "strokes": [],
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "effects": [],
+            "children": [
+              {
+                "id": "1:26",
+                "name": "Tarjeta 1",
+                "type": "FRAME",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "clipsContent": false,
+                "absoluteBoundingBox": {
+                  "x": 1284,
+                  "y": 1204,
+                  "width": 408,
+                  "height": 182
+                },
+                "absoluteRenderBounds": {
+                  "x": 1284,
+                  "y": 1204,
+                  "width": 408,
+                  "height": 182
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.8549019607843137,
+                      "g": 0.8666666666666667,
+                      "b": 0.8862745098039215,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "effects": [],
+                "children": [
+                  {
+                    "id": "1:23",
+                    "name": "Icono de la tarjeta 1",
+                    "type": "RECTANGLE",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1301,
+                      "y": 1221,
+                      "width": 48,
+                      "height": 48
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1301,
+                      "y": 1221,
+                      "width": 48,
+                      "height": 48
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.9254901960784314,
+                          "g": 0.9294117647058824,
+                          "b": 0.9372549019607843,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "effects": [],
+                    "cornerRadius": 12
+                  },
+                  {
+                    "id": "1:24",
+                    "name": "Título de la tarjeta 1",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1301,
+                      "y": 1285,
+                      "width": 374,
+                      "height": 28
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1301,
+                      "y": 1288,
+                      "width": 239.27,
+                      "height": 22
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.054901960784313725,
+                          "g": 0.06666666666666667,
+                          "b": 0.08627450980392157,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Piezas hechas a mano",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontPostScriptName": "BricolageGrotesque-800",
+                      "fontStyle": "Regular",
+                      "fontWeight": 800,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 22,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 28,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  },
+                  {
+                    "id": "1:25",
+                    "name": "Texto de la tarjeta 1",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1301,
+                      "y": 1321,
+                      "width": 374,
+                      "height": 48
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1301,
+                      "y": 1325,
+                      "width": 351.94,
+                      "height": 16
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.41568627450980394,
+                          "g": 0.4392156862745098,
+                          "b": 0.47843137254901963,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Cada pieza se modela, se esmalta y se hornea en nuestro taller.",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-400",
+                      "fontStyle": "Regular",
+                      "fontWeight": 400,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 16,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 24,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  }
+                ],
+                "cornerRadius": 16
+              },
+              {
+                "id": "1:30",
+                "name": "Tarjeta 2",
+                "type": "FRAME",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "clipsContent": false,
+                "absoluteBoundingBox": {
+                  "x": 1716,
+                  "y": 1204,
+                  "width": 408,
+                  "height": 182
+                },
+                "absoluteRenderBounds": {
+                  "x": 1716,
+                  "y": 1204,
+                  "width": 408,
+                  "height": 182
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.8549019607843137,
+                      "g": 0.8666666666666667,
+                      "b": 0.8862745098039215,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "effects": [],
+                "children": [
+                  {
+                    "id": "1:27",
+                    "name": "Icono de la tarjeta 2",
+                    "type": "RECTANGLE",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1733,
+                      "y": 1221,
+                      "width": 48,
+                      "height": 48
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1733,
+                      "y": 1221,
+                      "width": 48,
+                      "height": 48
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.9254901960784314,
+                          "g": 0.9294117647058824,
+                          "b": 0.9372549019607843,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "effects": [],
+                    "cornerRadius": 12
+                  },
+                  {
+                    "id": "1:28",
+                    "name": "Título de la tarjeta 2",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1733,
+                      "y": 1285,
+                      "width": 374,
+                      "height": 28
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1733,
+                      "y": 1288,
+                      "width": 289.69,
+                      "height": 22
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.054901960784313725,
+                          "g": 0.06666666666666667,
+                          "b": 0.08627450980392157,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Talleres para principiantes",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontPostScriptName": "BricolageGrotesque-800",
+                      "fontStyle": "Regular",
+                      "fontWeight": 800,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 22,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 28,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  },
+                  {
+                    "id": "1:29",
+                    "name": "Texto de la tarjeta 2",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 1733,
+                      "y": 1321,
+                      "width": 374,
+                      "height": 48
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 1733,
+                      "y": 1325,
+                      "width": 346.09,
+                      "height": 16
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.41568627450980394,
+                          "g": 0.4392156862745098,
+                          "b": 0.47843137254901963,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Sesiones de tres horas, con todos los materiales incluidos.",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-400",
+                      "fontStyle": "Regular",
+                      "fontWeight": 400,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 16,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 24,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  }
+                ],
+                "cornerRadius": 16
+              },
+              {
+                "id": "1:34",
+                "name": "Tarjeta 3",
+                "type": "FRAME",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "clipsContent": false,
+                "absoluteBoundingBox": {
+                  "x": 2148,
+                  "y": 1204,
+                  "width": 408,
+                  "height": 182
+                },
+                "absoluteRenderBounds": {
+                  "x": 2148,
+                  "y": 1204,
+                  "width": 408,
+                  "height": 182
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.8549019607843137,
+                      "g": 0.8666666666666667,
+                      "b": 0.8862745098039215,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "effects": [],
+                "children": [
+                  {
+                    "id": "1:31",
+                    "name": "Icono de la tarjeta 3",
+                    "type": "RECTANGLE",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 2165,
+                      "y": 1221,
+                      "width": 48,
+                      "height": 48
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 2165,
+                      "y": 1221,
+                      "width": 48,
+                      "height": 48
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.9254901960784314,
+                          "g": 0.9294117647058824,
+                          "b": 0.9372549019607843,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "effects": [],
+                    "cornerRadius": 12
+                  },
+                  {
+                    "id": "1:32",
+                    "name": "Título de la tarjeta 3",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 2165,
+                      "y": 1285,
+                      "width": 374,
+                      "height": 28
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 2165,
+                      "y": 1288,
+                      "width": 207.2,
+                      "height": 22
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.054901960784313725,
+                          "g": 0.06666666666666667,
+                          "b": 0.08627450980392157,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Encargos a medida",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontPostScriptName": "BricolageGrotesque-800",
+                      "fontStyle": "Regular",
+                      "fontWeight": 800,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 22,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 28,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  },
+                  {
+                    "id": "1:33",
+                    "name": "Texto de la tarjeta 3",
+                    "type": "TEXT",
+                    "scrollBehavior": "SCROLLS",
+                    "blendMode": "PASS_THROUGH",
+                    "absoluteBoundingBox": {
+                      "x": 2165,
+                      "y": 1321,
+                      "width": 374,
+                      "height": 24
+                    },
+                    "absoluteRenderBounds": {
+                      "x": 2165,
+                      "y": 1325,
+                      "width": 340.41,
+                      "height": 16
+                    },
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "type": "SOLID",
+                        "color": {
+                          "r": 0.41568627450980394,
+                          "g": 0.4392156862745098,
+                          "b": 0.47843137254901963,
+                          "a": 1
+                        }
+                      }
+                    ],
+                    "strokes": [],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "effects": [],
+                    "characters": "Vajillas y piezas únicas diseñadas junto a usted.",
+                    "characterStyleOverrides": [],
+                    "styleOverrideTable": {},
+                    "style": {
+                      "fontFamily": "Instrument Sans",
+                      "fontPostScriptName": "InstrumentSans-400",
+                      "fontStyle": "Regular",
+                      "fontWeight": 400,
+                      "textAutoResize": "HEIGHT",
+                      "fontSize": 16,
+                      "textAlignHorizontal": "LEFT",
+                      "textAlignVertical": "TOP",
+                      "letterSpacing": 0,
+                      "lineHeightPx": 24,
+                      "lineHeightPercent": 100,
+                      "lineHeightUnit": "PIXELS"
+                    }
+                  }
+                ],
+                "cornerRadius": 16
+              }
+            ]
+          },
+          {
+            "id": "1:37",
+            "name": "Pie",
+            "type": "FRAME",
+            "scrollBehavior": "SCROLLS",
+            "blendMode": "PASS_THROUGH",
+            "clipsContent": false,
+            "absoluteBoundingBox": {
+              "x": 1200,
+              "y": 1482,
+              "width": 1440,
+              "height": 85
+            },
+            "absoluteRenderBounds": {
+              "x": 1200,
+              "y": 1482,
+              "width": 1440,
+              "height": 85
+            },
+            "fills": [],
+            "strokes": [],
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "effects": [],
+            "children": [
+              {
+                "id": "1:36",
+                "name": "Texto del pie",
+                "type": "TEXT",
+                "scrollBehavior": "SCROLLS",
+                "blendMode": "PASS_THROUGH",
+                "absoluteBoundingBox": {
+                  "x": 1284,
+                  "y": 1515,
+                  "width": 256.95,
+                  "height": 20
+                },
+                "absoluteRenderBounds": {
+                  "x": 1284,
+                  "y": 1518,
+                  "width": 256.95,
+                  "height": 14
+                },
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "type": "SOLID",
+                    "color": {
+                      "r": 0.41568627450980394,
+                      "g": 0.4392156862745098,
+                      "b": 0.47843137254901963,
+                      "a": 1
+                    }
+                  }
+                ],
+                "strokes": [],
+                "strokeWeight": 1,
+                "strokeAlign": "OUTSIDE",
+                "effects": [],
+                "characters": "© 2026 Casa Nube · Estudio de cerámica",
+                "characterStyleOverrides": [],
+                "styleOverrideTable": {},
+                "style": {
+                  "fontFamily": "Instrument Sans",
+                  "fontPostScriptName": "InstrumentSans-400",
+                  "fontStyle": "Regular",
+                  "fontWeight": 400,
+                  "textAutoResize": "HEIGHT",
+                  "fontSize": 14,
+                  "textAlignHorizontal": "LEFT",
+                  "textAlignVertical": "TOP",
+                  "letterSpacing": 0,
+                  "lineHeightPx": 20,
+                  "lineHeightPercent": 100,
+                  "lineHeightUnit": "PIXELS"
+                }
+              }
+            ]
+          },
+          {
+            "id": "1:38",
+            "name": "Decoración (oculta)",
+            "type": "RECTANGLE",
+            "visible": false,
+            "scrollBehavior": "SCROLLS",
+            "blendMode": "PASS_THROUGH",
+            "absoluteBoundingBox": {
+              "x": 2100,
+              "y": 760,
+              "width": 300,
+              "height": 300
+            },
+            "fills": [
+              {
+                "blendMode": "NORMAL",
+                "type": "SOLID",
+                "color": {
+                  "r": 1,
+                  "g": 0,
+                  "b": 0.6666666666666666,
+                  "a": 1
+                }
+              }
+            ],
+            "strokes": [],
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "effects": []
+          }
+        ]
+      },
+      "components": {},
+      "componentSets": {},
+      "schema": "figma",
+      "styles": {}
+    }
+  }
+}

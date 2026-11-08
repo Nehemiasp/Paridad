@@ -61,7 +61,7 @@ Snapshot
 2. Todo `parentId` existe, no es el propio elemento y la jerarquía no forma ciclos.
 3. `kind="text"` exige `text`; `text` solo en elementos de texto; `image` solo en elementos de imagen.
 4. `text.normalized` coincide con `normalizeText(text.content)`.
-5. Si hay `canvas.image`, mide `width × scale` por `height × scale`.
+5. Si hay `canvas.image`, mide `width × scale` por `height × scale` (se admite 1 px de diferencia: Figma redondea al exportar).
 6. Las zonas `ignore` por `rect` quedan dentro del lienzo.
 
 (JSON Schema no puede expresar 1–6; por eso la validación completa es `parseSnapshot`, no el `.schema.json`.)

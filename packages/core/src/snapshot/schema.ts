@@ -114,7 +114,7 @@ export const CanvasSchema = z.object({
     .object({
       /** Ruta relativa al snapshot. */
       path: z.string().min(1),
-      /** px de la imagen (= width × scale, height × scale). */
+      /** px de la imagen (≈ width × scale, height × scale; se admite 1 px por redondeo al exportar). */
       width: z.number().int().positive(),
       height: z.number().int().positive(),
     })
@@ -228,11 +228,11 @@ export const SnapshotSchema = BaseSnapshotSchema.superRefine((snap, ctx) => {
   if (img) {
     const w = Math.round(snap.canvas.width * snap.canvas.scale);
     const h = Math.round(snap.canvas.height * snap.canvas.scale);
-    if (img.width !== w || img.height !== h) {
+    if (Math.abs(img.width - w) > 1 || Math.abs(img.height - h) > 1) {
       ctx.addIssue({
         code: "custom",
         path: ["canvas", "image"],
-        message: `la imagen mide ${img.width}×${img.height}, pero el lienzo a escala ${snap.canvas.scale} debería medir ${w}×${h}`,
+        message: `la imagen mide ${img.width}×${img.height}, pero el lienzo a escala ${snap.canvas.scale} debería medir ${w}×${h} (se admite 1 px de diferencia por redondeo)`,
       });
     }
   }

@@ -1,10 +1,12 @@
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { parseSnapshot } from "@paridad/core";
-import { landing } from "@paridad/fixtures";
+import { landing, readFigmaImagesResponse, readFigmaNodesResponse } from "@paridad/fixtures";
+import type { FetchLike } from "@paridad/figma";
+import { loadEnvLocal } from "./env.ts";
 import { run, type Io } from "./main.ts";
 import { buildIgnoreZones, parsePositiveInt, parseRect, parseScale } from "./options.ts";
 
@@ -68,5 +70,70 @@ describe("paridad capture", () => {
     const io = memoryIo();
     expect(await run(["--help"], io)).toBe(0);
     expect(io.stdout).toContain("capture");
+  });
+});
+
+describe("paridad figma", () => {
+  const nodes = readFigmaNodesResponse();
+  const images = readFigmaImagesResponse();
+  const png = readFileSync(landing.designImage);
+  const ok = (data: unknown, bin?: Buffer) => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => null },
+    json: async () => data,
+    arrayBuffer: async () => (bin ? (bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength) as ArrayBuffer) : new ArrayBuffer(0)),
+  });
+  const fetchFake: FetchLike = async (url) => {
+    if (url.includes("/nodes")) return ok(nodes);
+    if (url.includes("/v1/images/")) return ok(images);
+    if (url.includes("/variables/")) return { ...ok({}), ok: false, status: 403 };
+    return ok({}, png);
+  };
+
+  it("sin token explica cómo conseguirlo y no abre la red", async () => {
+    const io = memoryIo();
+    const fetch = vi.fn(fetchFake);
+    expect(await run(["figma", "--url", landing.figmaUrl], io, { env: {}, cwd: mkdtempSync(join(tmpdir(), "p-")), fetch })).toBe(1);
+    expect(io.stderr).toContain("FIGMA_TOKEN");
+    expect(io.stderr).toContain(".env.local");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("genera snapshot.json y design.png desde la URL del frame", async () => {
+    const out = mkdtempSync(join(tmpdir(), "paridad-figma-"));
+    const cwd = mkdtempSync(join(tmpdir(), "p-"));
+    const io = memoryIo();
+    const code = await run(["figma", "--url", landing.figmaUrl, "--out", out, "--scale", "1"], io, { env: { FIGMA_TOKEN: "t" }, cwd, fetch: fetchFake });
+    expect(io.stderr).toBe("");
+    expect(code).toBe(0);
+    expect(io.stdout).toContain("lienzo 1440×927");
+    expect(existsSync(join(out, "design.png"))).toBe(true);
+    const snap = parseSnapshot(JSON.parse(readFileSync(join(out, "snapshot.json"), "utf8")));
+    expect(snap.ok && snap.snapshot.source).toBe("design");
+    expect(existsSync(join(cwd, ".paridad-cache", "figma"))).toBe(true);
+  });
+
+  it("--no-image no escribe imagen", async () => {
+    const out = mkdtempSync(join(tmpdir(), "paridad-figma-"));
+    const io = memoryIo();
+    expect(await run(["figma", "--url", landing.figmaUrl, "--out", out, "--no-image"], io, { env: { FIGMA_TOKEN: "t" }, cwd: mkdtempSync(join(tmpdir(), "p-")), fetch: fetchFake })).toBe(0);
+    expect(existsSync(join(out, "design.png"))).toBe(false);
+  });
+
+  it("una URL sin frame da un error claro", async () => {
+    const io = memoryIo();
+    expect(await run(["figma", "--url", "https://figma.com/design/K/x"], io, { env: { FIGMA_TOKEN: "t" }, cwd: tmpdir(), fetch: fetchFake })).toBe(1);
+    expect(io.stderr).toContain("no indica un frame");
+  });
+});
+
+describe("loadEnvLocal", () => {
+  it("lee .env.local y deja que el entorno mande", () => {
+    const dir = mkdtempSync(join(tmpdir(), "env-"));
+    writeFileSync(join(dir, ".env.local"), "FIGMA_TOKEN=del-archivo\nOTRA=1\n");
+    expect(loadEnvLocal(dir, {}).FIGMA_TOKEN).toBe("del-archivo");
+    expect(loadEnvLocal(dir, { FIGMA_TOKEN: "del-entorno" }).FIGMA_TOKEN).toBe("del-entorno");
+    expect(loadEnvLocal(join(dir, "no-existe"), { X: "1" })).toEqual({ X: "1" });
   });
 });
