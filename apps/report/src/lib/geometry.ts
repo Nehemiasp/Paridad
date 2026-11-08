@@ -31,7 +31,8 @@ export function boxStyle(b: Box, stage: { width: number; height: number }): { le
 }
 
 export function fileUrl(entryId: string, path: string): string {
-  return `/files/${encodeURIComponent(entryId)}/${path.split("/").map(encodeURIComponent).join("/")}`;
+  // Los reportes hechos en Windows pueden traer «\\» en las rutas: se aceptan igual.
+  return `/files/${encodeURIComponent(entryId)}/${path.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/")}`;
 }
 
 /** Valor de la evidencia legible: objetos como «x: 16, y: 16». */

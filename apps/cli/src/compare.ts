@@ -7,7 +7,7 @@ import { visualDiff } from "@paridad/visual";
 import { AnswerCache, attachAi, createAnthropicClient, createSimulatedClient, explainReport, summarizeAi, DEFAULT_MODEL, type AiClient } from "@paridad/ai";
 import { loadConfigFile } from "./config-file.ts";
 import { loadEnvLocal } from "./env.ts";
-import { buildIgnoreZones, parsePositiveInt, parseScale } from "./options.ts";
+import { buildIgnoreZones, parsePositiveInt, parseScale, toPosixPath } from "./options.ts";
 
 export interface CompareIo {
   out: (text: string) => void;
@@ -99,7 +99,7 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
 
   const outDir = resolve(cwd, opts.out ?? "out/compare");
   mkdirSync(outDir, { recursive: true });
-  const rel = (p: string) => relative(outDir, p);
+  const rel = (p: string) => toPosixPath(relative(outDir, p));
 
   let design: Snapshot;
   let page: Snapshot;
@@ -155,7 +155,12 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
     paths.page = { snapshot: rel(pPath), ...(pageImage ? { image: rel(pageImage) } : {}) };
   } else {
     const width = opts.width ? parsePositiveInt("--width", opts.width) : Math.round(design.canvas.width);
-    io.out(`Capturando ${opts.page} a ${width} px (el ancho del frame)…\n`);
+    const frameWidth = Math.round(design.canvas.width);
+    if (width === frameWidth) io.out(`Capturando ${opts.page} a ${width} px (el ancho del frame)…\n`);
+    else {
+      io.out(`Capturando ${opts.page} a ${width} px…\n`);
+      io.err(`Aviso: el frame mide ${frameWidth} px de ancho y la página se captura a ${width} px. Con anchos distintos casi nada es comparable (el puntaje saldrá muy bajo); deje el ancho vacío para usar el del frame.\n`);
+    }
     const captured = await capturePage({
       url: opts.page,
       width,

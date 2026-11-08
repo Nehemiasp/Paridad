@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
@@ -21,6 +21,7 @@ let context: BrowserContext;
 let server: RunningReport;
 let workspace: string;
 const seeded = "20260101-120000-semilla";
+const winFolder = "20260103-120000-windows";
 
 beforeAll(async () => {
   workspace = mkdtempSync(join(tmpdir(), "e2e-ws-"));
@@ -28,6 +29,17 @@ beforeAll(async () => {
   const io = { out: () => undefined, err: () => undefined };
   const code = await run(["compare", "--design", landing.designSnapshot, "--page", join(landing.dir, "page.snapshot.json"), "--out", join(workspace, seeded)], io, { cwd: workspace, env: {} });
   if (code !== 0) throw new Error("no se pudo sembrar la comparación de prueba");
+
+  // Un reporte como el que genera Windows: las rutas de las imágenes llevan «\\» (path.relative) en vez de «/».
+  cpSync(join(workspace, seeded), join(workspace, winFolder), { recursive: true });
+  const winDir = join(workspace, winFolder);
+  mkdirSync(join(winDir, "sub"), { recursive: true });
+  const win = JSON.parse(readFileSync(join(winDir, "report.json"), "utf8")) as { design: { imagePath: string }; page: { imagePath: string } };
+  renameSync(join(winDir, win.design.imagePath), join(winDir, "sub", "design.png"));
+  renameSync(join(winDir, win.page.imagePath), join(winDir, "sub", "page.png"));
+  win.design.imagePath = "sub\\design.png";
+  win.page.imagePath = "sub\\page.png";
+  writeFileSync(join(winDir, "report.json"), JSON.stringify(win));
 
   const nextBin = require_.resolve("next/dist/bin/next", { paths: [reportAppDir()] });
   execFileSync(process.execPath, [nextBin, "build"], { cwd: reportAppDir(), env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" }, stdio: "pipe" });
@@ -85,7 +97,7 @@ describe("pantalla «Nueva comparación»", () => {
     expect(env).toMatch(/Chromium: listo/);
     // Nunca se muestran valores de secretos.
     expect(await page.content()).not.toMatch(/figd_|sk-ant-/);
-    await expect.poll(() => page.locator(".history-item").count()).toBe(1);
+    await expect.poll(() => page.locator(".history-item").count()).toBe(2);
     expect(await axeViolations(page)).toEqual([]);
     await page.close();
   });
@@ -141,7 +153,7 @@ describe("pantalla «Nueva comparación»", () => {
     expect((await post("/api/comparaciones", { host, "x-paridad": "0".repeat(32) })).status).toBe(403);
     expect((await post("/api/comparaciones", { host, origin: "https://malo.example", "x-paridad": "0".repeat(32) })).status).toBe(403);
     expect((await post("/api/comparaciones", { host: "malo.example" })).status).toBe(403);
-    expect(readdirSync(workspace)).toEqual([seeded]);
+    expect(readdirSync(workspace).sort()).toEqual([seeded, winFolder]);
   });
 
   it("modo ejemplo completo: avance, un solo trabajo a la vez, reporte con puntaje 100 y aparece en el historial", async () => {
@@ -174,7 +186,7 @@ describe("pantalla «Nueva comparación»", () => {
     expect(imgs.length).toBeGreaterThan(0);
     for (const src of imgs) expect((await page.request.get(src)).status()).toBe(200);
     await page.goto(`${server.url}/nueva`, { waitUntil: "networkidle" });
-    await page.waitForFunction(() => document.querySelectorAll(".history-item").length >= 2);
+    await page.waitForFunction(() => document.querySelectorAll(".history-item").length >= 3);
     await page.close();
   });
 
@@ -244,6 +256,15 @@ describe("pantalla «Nueva comparación»", () => {
       const res = await context.request.get(server.url + path);
       expect(res.status(), path).toBe(404);
     }
+  });
+
+  it("un reporte con rutas de Windows (con «\\») muestra sus imágenes", async () => {
+    const page = await open(`/comparaciones/${winFolder}/reporte`);
+    await page.waitForSelector(".stage img");
+    const loaded = await page.locator(".stage img").evaluateAll((els) => els.map((e) => (e as HTMLImageElement).complete && (e as HTMLImageElement).naturalWidth > 0));
+    expect(loaded.length).toBeGreaterThan(0);
+    expect(loaded.every(Boolean)).toBe(true);
+    await page.close();
   });
 
   it("PDF de una comparación del espacio de trabajo", async () => {

@@ -12,7 +12,7 @@ import { COMMENT_MARKER, ScreensSchema, toComment } from "./ci.ts";
 import { decodePng, encodePng } from "@paridad/visual";
 import type { AiClient, AiRequest } from "@paridad/ai";
 import { run, type Io } from "./main.ts";
-import { buildIgnoreZones, parsePositiveInt, parseRect, parseScale } from "./options.ts";
+import { buildIgnoreZones, parsePositiveInt, parseRect, parseScale, toPosixPath } from "./options.ts";
 
 function memoryIo(): Io & { stdout: string; stderr: string } {
   const io = {
@@ -39,6 +39,11 @@ describe("opciones", () => {
     expect(parseScale(undefined)).toBe(1);
     expect(parseScale("2")).toBe(2);
     expect(() => parseScale("3")).toThrow(/1 o 2/);
+  });
+  it("toPosixPath: las rutas del reporte llevan «/» aunque vengan de Windows", () => {
+    expect(toPosixPath("design\\design.png")).toBe("design/design.png");
+    expect(toPosixPath("a\\b\\c.png")).toBe("a/b/c.png");
+    expect(toPosixPath("ya/posix.png")).toBe("ya/posix.png");
   });
   it("buildIgnoreZones junta selectores y rectángulos", () => {
     expect(buildIgnoreZones([".fecha"], ["0,0,10,10"])).toEqual([{ selector: ".fecha" }, { rect: { x: 0, y: 0, width: 10, height: 10 } }]);
@@ -263,6 +268,22 @@ describe("paridad compare", () => {
     expect(io.stdout).toContain("Puntaje de paridad: 100 / 100");
     // El reporte es autocontenido: la imagen del diseño se copia dentro de la carpeta de salida.
     for (const f of ["design.png", "page/snapshot.json", "page/screenshot.png", "report.json"]) expect(existsSync(join(out, f)), f).toBe(true);
+  });
+});
+
+describe("paridad compare · ancho distinto al del frame", () => {
+  const designFile = landing.designSnapshot;
+  const page = pathToFileURL(landing.pageIndex).href;
+  it("avisa cuando el ancho pedido no es el del frame, y no avisa cuando lo es", async () => {
+    const mismatch = memoryIo();
+    await run(["compare", "--design", designFile, "--page", page, "--width", "1000", "--out", mkdtempSync(join(tmpdir(), "paridad-w-"))], mismatch, { cwd: mkdtempSync(join(tmpdir(), "paridad-w-")), env: {} });
+    expect(mismatch.stderr).toMatch(/el frame mide 1440 px de ancho y la página se captura a 1000 px/);
+    expect(mismatch.stdout).not.toContain("el ancho del frame");
+
+    const same = memoryIo();
+    await run(["compare", "--design", designFile, "--page", page, "--out", mkdtempSync(join(tmpdir(), "paridad-w-"))], same, { cwd: mkdtempSync(join(tmpdir(), "paridad-w-")), env: {} });
+    expect(same.stderr).toBe("");
+    expect(same.stdout).toContain("(el ancho del frame)");
   });
 });
 

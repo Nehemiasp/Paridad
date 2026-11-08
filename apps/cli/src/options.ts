@@ -32,3 +32,6 @@ export function parseScale(text: string | undefined): 1 | 2 {
 export function buildIgnoreZones(selectors: string[] = [], rects: string[] = []): IgnoreZone[] {
   return [...selectors.map((selector) => ({ selector })), ...rects.map((r) => ({ rect: parseRect(r) }))];
 }
+
+/** Rutas del reporte siempre con «/»: en Windows `path.relative` da `design\\design.png`, y la app y los enlaces esperan `/`. */
+export const toPosixPath = (p: string): string => p.replace(/\\/g, "/");

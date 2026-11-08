@@ -137,7 +137,7 @@ export function NewComparison({ token, env }: { token: string; env: EnvStatus })
 
         <div className="row">
           <FieldBox id="width" label="Ancho de la ventana (px)" optional hint={`Entre ${LIMITS.minWidth} y ${LIMITS.maxWidth}. Vacío: el ancho del frame.`} error={errors.width}>
-            <input id="width" name="width" type="text" inputMode="numeric" autoComplete="off" value={d.width} placeholder="1440" onChange={(e) => set("width", e.target.value)} {...aria("width", true)} />
+            <input id="width" name="width" type="text" inputMode="numeric" autoComplete="off" value={d.width} placeholder="Ancho del frame" onChange={(e) => set("width", e.target.value)} {...aria("width", true)} />
           </FieldBox>
           <FieldBox id="scale" label="Escala de la imagen" error={errors.scale}>
             <select id="scale" name="scale" value={d.scale} onChange={(e) => set("scale", e.target.value === "2" ? "2" : "1")} {...aria("scale", false)}>

@@ -130,6 +130,8 @@ describe("geometría del visor", () => {
   });
   it("las URL de archivos codifican cada tramo y los valores se muestran legibles", () => {
     expect(fileUrl("0", "design/mi diseño.png")).toBe("/files/0/design/mi%20dise%C3%B1o.png");
+    // Un reporte hecho en Windows trae «\\» en las rutas: se sirve igual.
+    expect(fileUrl("c:20260101-a", "design\\design.png")).toBe("/files/c%3A20260101-a/design/design.png");
     expect(fmtValue({ x: 16, y: 16 })).toBe("x: 16, y: 16");
     expect(fmtValue(null)).toBe("—");
     expect(fmtValue([1, 2])).toBe("1, 2");
