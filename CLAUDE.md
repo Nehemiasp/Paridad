@@ -39,6 +39,7 @@ Motivo de cuadros con píldora azul.
 | `npm test -w packages/core` | Solo las pruebas de un paquete (es lo que corre el hook). |
 | `npm run typecheck` | `tsc --noEmit` en la raíz y en cada paquete. |
 | `npm run schema:json` | Regenera `docs/snapshot.schema.json` desde Zod. |
+| `npm run paridad -- capture --page <url> --width 1440` | Captura una página → `snapshot.json` + `screenshot.png` (por defecto en `out/capture`). |
 
 ## Estructura
 
@@ -47,12 +48,12 @@ packages/core/      formato snapshot (Zod), validación; luego emparejamiento, r
 fixtures/           datos de prueba compartidos; landing/ = página «Casa Nube» + snapshot de diseño       [existe]
 scripts/            hook de pruebas y generador del JSON Schema                                          [existe]
 docs/               snapshot.md y snapshot.schema.json                                                   [existe]
-packages/capture/   Playwright: página construida → snapshot                                             [Fase 1]
+packages/capture/   Playwright: página construida → snapshot                                             [existe]
 packages/figma/     API de Figma: frame → snapshot                                                       [Fase 2]
 packages/visual/    diferencia de píxeles y mapa de calor                                                [Fase 4]
 packages/evals/     mutaciones y medición de aciertos                                                    [Fase 5]
 packages/ai/        capa opcional con Claude                                                             [Fase 6]
-apps/cli/           `paridad compare …`                                                                  [Fases 1–3]
+apps/cli/           `paridad capture|figma|compare …` (hoy solo `capture`)                                [existe]
 apps/report/        reporte web (Next.js)                                                                [Fase 7]
 ```
 
@@ -83,11 +84,20 @@ Una línea cada una: qué se decidió y por qué.
 - **D-014 · Página de ejemplo con fuentes locales (`woff2`, SIL OFL)** — las capturas deben ser idénticas en cualquier máquina; una fuente de sistema las haría variar.
 - **D-015 · `fixtures/` sin dependencias, validado desde `core`** — evita un ciclo de dependencias (`core` usa los datos de prueba; los datos de prueba no usan `core`).
 - **D-016 · Las dependencias se instalan cuando se usan** — `culori`, `fastest-levenshtein`, `pixelmatch`, etc. llegan con la fase que las necesita, no antes.
+- **D-017 · El extractor del navegador es JS plano (`in-page/extract.js`), no TS** — al serializar una función TS hacia la página, tsx/esbuild inyecta helpers (`__name`) que allí no existen y rompe la captura.
+- **D-018 · La imagen mide siempre el ancho de la ventana; si la página se desborda, la raíz `page` queda más ancha que el lienzo** — así la imagen sigue siendo comparable con el frame y el desborde horizontal queda como dato medible para la Fase 3, en lugar de perderse.
+- **D-019 · La fuente realmente pintada se pide a Chromium (`CSS.getPlatformFontsForNode`) y se guarda en `renderedFontFamily`** — el CSS declara una fuente, no garantiza que cargó; comparar declarada vs pintada permite el hallazgo único «la fuente no cargó» en vez de uno por texto. Chromium da el nombre interno («Bricolage Grotesque 96pt ExtraBold»); si empieza con la familia declarada se normaliza a ella.
+- **D-020 · Condiciones fijas de captura** — escala fija, zona horaria UTC, `es-MX`, `prefers-reduced-motion`, service workers bloqueados, CSS que apaga animaciones/transiciones, espera a red inactiva + `document.fonts.ready` + decodificación de imágenes + recorrido para imágenes perezosas. Dos capturas seguidas dan elementos y píxeles idénticos (hay prueba).
+- **D-021 · El texto se mide recortado por el ancestro que corta el desbordamiento** — lo que no se ve no se compara; si el recorte quita más de 1 px, el texto se marca `clipped: overflow` (además de `ellipsis` y `line-clamp`, que se detectan por su CSS).
+- **D-022 · `text-transform` se aplica al contenido** — Figma guarda el texto ya transformado o no según el diseñador; comparar lo que se ve evita falsos «texto distinto».
+- **D-023 · Solo `http`, `https` y `file`; nunca se siguen enlaces** — cumple la regla de capturar únicamente lo que se indica.
+- **D-024 · Zonas a ignorar por selector se resuelven también a rectángulos** — la diferencia visual (Fase 4) trabaja con píxeles y necesita rectángulos; el selector se conserva para el reporte.
+- **D-025 · Límites conocidos de la captura (documentados, no escondidos)** — el orden `z` es el del DOM (no se resuelven contextos de apilamiento con `z-index`); no entra en Shadow DOM ni iframes; el texto mezclado (`<p>Hola <b>mundo</b></p>`) produce un elemento por cada nodo con texto propio; no hay imágenes de fondo ni valores de `<input>`.
 
 ## Estado de fases
 
 - [x] **Fase 0** · Planificación y base
-- [ ] Fase 1 · Capturar la página construida
+- [x] **Fase 1** · Capturar la página construida
 - [ ] Fase 2 · Leer el diseño desde Figma
 - [ ] Fase 3 · Motor de comparación
 - [ ] Fase 4 · Diferencia visual

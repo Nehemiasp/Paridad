@@ -1,0 +1,25 @@
+{
+  "name": "@paridad/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "paridad": "./bin/paridad.mjs"
+  },
+  "exports": {
+    ".": "./src/main.ts"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project @paridad/cli",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@paridad/capture": "^0.0.0",
+    "@paridad/core": "^0.0.0",
+    "commander": "^15.1.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@paridad/fixtures": "^0.0.0"
+  }
+}

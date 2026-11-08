@@ -321,6 +321,10 @@
                 "type": "string",
                 "minLength": 1
               },
+              "renderedFontFamily": {
+                "type": "string",
+                "minLength": 1
+              },
               "fontSize": {
                 "type": "number",
                 "exclusiveMinimum": 0

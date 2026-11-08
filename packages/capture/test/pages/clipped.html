@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Textos cortados</title>
+<style>
+  body { margin: 0; padding: 20px; font: 16px/24px sans-serif; background: #ffffff; color: #111111; }
+  .box { width: 200px; margin-bottom: 16px; }
+  .ellipsis { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .overflow { height: 24px; overflow: hidden; }
+  .free { }
+</style></head>
+<body>
+  <div class="box ellipsis" id="ellipsis">Un texto bastante largo que no cabe en doscientos píxeles</div>
+  <div class="box clamp" id="clamp">Un párrafo largo que ocupa más de dos líneas dentro de una caja angosta y por eso se corta con puntos suspensivos al final del segundo renglón.</div>
+  <div class="box overflow" id="overflow">Primera línea visible<br>Segunda línea oculta por el alto fijo</div>
+  <div class="box free" id="free">Texto que cabe sin problema</div>
+</body></html>

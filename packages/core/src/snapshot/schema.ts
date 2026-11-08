@@ -40,6 +40,11 @@ export const ShadowSchema = z.object({
 
 export const StyleSchema = z.object({
   fontFamily: z.string().min(1).optional(),
+  /**
+   * Fuente que el navegador pintó de verdad (puede diferir de `fontFamily` si la fuente no cargó).
+   * Solo la llena la captura de la página; Figma no la informa.
+   */
+  renderedFontFamily: z.string().min(1).optional(),
   /** px */
   fontSize: z.number().positive().optional(),
   /** 100–900 */
@@ -125,6 +130,8 @@ export const IgnoreZoneSchema = z.union([
   z.object({ selector: z.string().min(1) }),
   z.object({ rect: BoxSchema }),
 ]);
+
+export type IgnoreZone = z.infer<typeof IgnoreZoneSchema>;
 
 export const MetaSchema = z.object({
   name: z.string().min(1),

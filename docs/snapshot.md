@@ -52,7 +52,7 @@ Snapshot
 
 ### Style (todo opcional)
 
-`fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `color` (del texto), `background`, `border {width, style?, color}`,
+`fontFamily`, `renderedFontFamily` (solo páginas: la fuente que el navegador pintó de verdad; si difiere de `fontFamily`, la fuente no cargó), `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `color` (del texto), `background`, `border {width, style?, color}`,
 `radius` (número, o `[arriba-izq, arriba-der, abajo-der, abajo-izq]`), `shadows [{x,y,blur,spread,color,inset?}]`, `opacity` (0–1).
 
 ## Reglas que `parseSnapshot` aplica además del tipo de cada campo

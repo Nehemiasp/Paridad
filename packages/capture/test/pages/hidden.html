@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Elementos ocultos</title>
+<style>
+  body { margin: 0; padding: 20px; font: 16px/24px sans-serif; background: #ffffff; color: #111111; }
+  .nada { display: none; }
+  .invisible { visibility: hidden; }
+  .transparente { opacity: 0; }
+  .vacio { width: 0; height: 0; background: #ff0000; }
+  .upper { text-transform: uppercase; }
+</style></head>
+<body>
+  <p id="visible">Visible</p>
+  <p class="nada">Con display none</p>
+  <p class="invisible">Con visibility hidden</p>
+  <p class="transparente">Con opacidad cero</p>
+  <div class="vacio"></div>
+  <p class="upper" id="upper">  Texto   en   mayúsculas </p>
+  <div id="fecha" style="background:#eeeeee; padding:8px">Actualizado el 8 de noviembre</div>
+  <div id="color-moderno" style="background: oklch(0.5 0.1 250); color: #ffffff; padding: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 2px solid #333333; border-radius: 8px;">Color moderno</div>
+</body></html>

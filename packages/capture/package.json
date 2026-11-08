@@ -1,0 +1,20 @@
+{
+  "name": "@paridad/capture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project @paridad/capture",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@paridad/core": "^0.0.0",
+    "playwright": "1.63.0"
+  },
+  "devDependencies": {
+    "@paridad/fixtures": "^0.0.0"
+  }
+}
