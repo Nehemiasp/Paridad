@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { mkdtempSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "node:http";
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { assertSnapshot, parseSnapshot } from "@paridad/core";
@@ -210,6 +211,53 @@ describe("capturePage · qué se incluye y cómo", () => {
 
   it("rechaza una URL no permitida antes de abrir el navegador", async () => {
     await expect(capturePage({ url: "ftp://ejemplo.com", width: 1440 })).rejects.toThrow(/protocolo/);
+  });
+});
+
+describe("capturePage · sitios reales que nunca se quedan quietos", () => {
+  // Dos cosas que una página real hace y las de prueba no: una imagen diferida oculta (el menú móvil) que nunca carga, y una
+  // petición que nunca termina (píxeles de analítica o anuncios). Antes, `img.decode()` esperaba para siempre.
+  it("termina aunque haya una imagen diferida que no carga y una petición colgada", async () => {
+    const sockets = new Set<import("node:net").Socket>();
+    const server = createServer((req, res) => {
+      if (req.url === "/colgada.gif") return; // no responde nunca
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(
+        `<!doctype html><title>Colgada</title><body style="margin:0;font:16px sans-serif">
+         <h1>Página con cabos sueltos</h1><p>Texto visible.</p>
+         <script>addEventListener("load", () => setTimeout(() => { new Image().src = "/colgada.gif"; }, 50));</script>
+         <div style="display:none"><img loading="lazy" src="/menu-movil.png" width="24" height="24" alt=""></div></body>`,
+      );
+    });
+    server.on("connection", (s) => (sockets.add(s), s.on("close", () => sockets.delete(s))));
+    await new Promise<void>((ok) => server.listen(0, "127.0.0.1", ok));
+    const port = (server.address() as { port: number }).port;
+    try {
+      const started = Date.now();
+      const r = await capturePage({ url: `http://127.0.0.1:${port}/`, width: 800, idleTimeoutMs: 300, timeoutMs: 20_000 }, browser);
+      expect(Date.now() - started).toBeLessThan(15_000);
+      expect(textOf(r, (t) => t === "Texto visible.")).toBeDefined();
+    } finally {
+      for (const s of sockets) s.destroy();
+      await new Promise<void>((ok) => server.close(() => ok()));
+    }
+  });
+});
+
+describe("capturePage · páginas con política de seguridad (CSP)", () => {
+  it("captura una página cuya CSP prohíbe estilos y scripts en línea", async () => {
+    const server = createServer((_req, res) => {
+      res
+        .writeHead(200, { "content-type": "text/html; charset=utf-8", "content-security-policy": "default-src 'self'; style-src 'self'; script-src 'self'" })
+        .end("<!doctype html><title>Con CSP</title><body style=\"margin:0\"><h1>Página protegida</h1><p>Texto bajo CSP.</p></body>");
+    });
+    await new Promise<void>((ok) => server.listen(0, "127.0.0.1", ok));
+    const port = (server.address() as { port: number }).port;
+    try {
+      const r = await capturePage({ url: `http://127.0.0.1:${port}/`, width: 800, idleTimeoutMs: 300, timeoutMs: 15_000 }, browser);
+      expect(textOf(r, (t) => t === "Texto bajo CSP.")).toBeDefined();
+    } finally {
+      await new Promise<void>((ok) => server.close(() => ok()));
+    }
   });
 });
 

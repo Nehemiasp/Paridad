@@ -26,6 +26,11 @@ export interface CaptureOptions {
   name?: string;
   /** Tiempo máximo de carga en ms. Por defecto 30 000. */
   timeoutMs?: number;
+  /**
+   * Cuánto esperar a que la red quede inactiva, en ms (por defecto 10 000, nunca más que `timeoutMs`). Un sitio real casi nunca
+   * llega a estar «inactivo» (píxeles de analítica, anuncios, sockets): pasado este tiempo se captura igual, en vez de esperar de más.
+   */
+  idleTimeoutMs?: number;
   /** Nombre de archivo de la imagen dentro del snapshot. Por defecto «screenshot.png». */
   imageName?: string;
 }
@@ -49,23 +54,44 @@ interface Extracted {
   scrollHeight: number;
 }
 
-/** Espera a que la página esté realmente quieta: red, fuentes, imágenes y carga diferida. */
-async function settle(page: Page, timeoutMs: number): Promise<void> {
-  await page.waitForLoadState("networkidle", { timeout: timeoutMs }).catch(() => {});
+/** Límite para un paso que podría no terminar nunca: pasado el tiempo se sigue sin su resultado. */
+async function bounded(work: Promise<unknown>, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([work.catch(() => undefined), new Promise<void>((done) => (timer = setTimeout(done, ms)))]);
+  if (timer) clearTimeout(timer);
+}
+
+/** Espera a que la página esté realmente quieta: red, fuentes, imágenes y carga diferida. Cada espera tiene un tope. */
+async function settle(page: Page, timeoutMs: number, idleMs: number): Promise<void> {
+  const idle = () => page.waitForLoadState("networkidle", { timeout: idleMs }).catch(() => {});
+  await idle();
   // Recorre la página para que se carguen imágenes `loading="lazy"` y vuelve al inicio.
-  await page.evaluate(async () => {
-    const step = Math.max(200, window.innerHeight * 0.8);
-    for (let y = 0, guard = 0; y < document.documentElement.scrollHeight && guard < 60; y += step, guard++) {
-      window.scrollTo(0, y);
-      await new Promise((r) => setTimeout(r, 30));
-    }
-    window.scrollTo(0, 0);
-  });
-  await page.waitForLoadState("networkidle", { timeout: timeoutMs }).catch(() => {});
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await Promise.all(Array.from(document.images).map((img) => img.decode().catch(() => undefined)));
-  });
+  await bounded(
+    page.evaluate(async () => {
+      const step = Math.max(200, window.innerHeight * 0.8);
+      for (let y = 0, guard = 0; y < document.documentElement.scrollHeight && guard < 60; y += step, guard++) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 30));
+      }
+      window.scrollTo(0, 0);
+    }),
+    timeoutMs,
+  );
+  await idle();
+  // `img.decode()` no termina nunca con una imagen diferida que no está a la vista (el menú móvil de un sitio real, por ejemplo):
+  // cada imagen que aún no cargó tiene 3 s, y todo el paso tiene el tope de la carga.
+  await bounded(
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      await Promise.all(
+        Array.from(document.images).map((img) => {
+          const done = img.decode().catch(() => undefined);
+          return img.complete ? done : Promise.race([done, new Promise((r) => setTimeout(r, 3000))]);
+        }),
+      );
+    }),
+    timeoutMs,
+  );
 }
 
 /** Pide a Chromium qué fuente se pintó de verdad en cada texto (la declarada puede no haber cargado). */
@@ -139,6 +165,7 @@ export async function capturePage(options: CaptureOptions, browser?: Browser): P
   const scale = options.scale ?? 1;
   const height = options.height ?? 900;
   const timeout = options.timeoutMs ?? 30_000;
+  const idleTimeout = Math.min(timeout, options.idleTimeoutMs ?? 10_000);
   const ignore = options.ignore ?? [];
 
   const ownBrowser = !browser;
@@ -152,12 +179,15 @@ export async function capturePage(options: CaptureOptions, browser?: Browser): P
       locale: "es-MX",
       timezoneId: "UTC",
       serviceWorkers: "block",
+      // Paridad inyecta una hoja de estilos (congela animaciones) y mide el DOM; la política de seguridad (CSP) de un sitio real
+      // lo bloquearía. Solo afecta a esta ventana de captura, no a la página publicada.
+      bypassCSP: true,
     });
     try {
       const page = await context.newPage();
       await page.goto(url.href, { waitUntil: "load", timeout });
       await page.addStyleTag({ content: FREEZE_CSS });
-      await settle(page, timeout);
+      await settle(page, timeout, idleTimeout);
 
       // La imagen mide siempre el ancho de la ventana (= el del frame). Si la página se desborda
       // horizontalmente, eso no se recorta del snapshot: la raíz «page» queda más ancha que el lienzo.
