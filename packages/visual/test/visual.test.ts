@@ -112,6 +112,25 @@ describe("visualDiff", () => {
     expect(at(38, 40)).toEqual([4, 53, 101]); // el recuadro de la región, en azul de marca
   });
 
+  it("reconoce un contenido que solo se corrió: es una copia desplazada, con su desplazamiento", () => {
+    const content = (y: number) => rect(rect(page(300, 200), 20, y, 60, 20, [4, 53, 101, 255]), 84, y + 4, 40, 12, [200, 30, 30, 255]);
+    const r = diff(content(30), content(38));
+    expect(r.regions).toHaveLength(1);
+    expect(r.regions[0]!.shift).toEqual({ dx: 0, dy: 8 });
+    const left = diff(content(30), rect(rect(page(300, 200), 12, 30, 60, 20, [4, 53, 101, 255]), 76, 34, 40, 12, [200, 30, 30, 255]));
+    expect(left.regions[0]!.shift).toEqual({ dx: -8, dy: 0 });
+  });
+
+  it("si el contenido además cambió, no es una copia desplazada", () => {
+    const a = rect(page(300, 200), 20, 30, 60, 20, [4, 53, 101, 255]);
+    const b = rect(page(300, 200), 20, 38, 60, 20, [200, 30, 30, 255]); // corrido Y de otro color
+    expect(diff(a, b).regions[0]!.shift).toBeUndefined();
+  });
+
+  it("una zona nueva sobre fondo liso no se confunde con un desplazamiento", () => {
+    expect(diff(page(), rect(page(), 40, 30, 60, 20, [200, 30, 30, 255])).regions[0]!.shift).toBeUndefined();
+  });
+
   it("falla con claridad si la escala no es un múltiplo entero", () => {
     expect(() => visualDiff({ design: { png: png(page()), scale: 2 }, page: { png: png(page()), scale: 1.5 } })).toThrow(/entero/);
   });

@@ -1,0 +1,26 @@
+{
+  "id": "icono-tarjetas-56",
+  "description": "Los iconos de las tarjetas pasan de 48x48 a 56x56 px; empujan el título y el texto 8 px hacia abajo y las tarjetas crecen.",
+  "errorType": "tamano-de-icono",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": "  width: 48px;\n  height: 48px;\n  border-radius: 12px;",
+      "replace": "  width: 56px;\n  height: 56px;\n  border-radius: 12px;"
+    }
+  ],
+  "expected": [
+    { "rule": "size", "designId": "tarjeta-1-icono", "severity": "medium", "note": "8 px de ancho y de alto" },
+    { "rule": "size", "designId": "tarjeta-2-icono", "severity": "medium" },
+    { "rule": "size", "designId": "tarjeta-3-icono", "severity": "medium" }
+  ],
+  "acceptable": [
+    { "rule": "size", "designIdPattern": "^tarjeta-\\d$" },
+    { "rule": "position", "designIdPattern": "^tarjeta-\\d-(titulo|texto)$" },
+    { "rule": "spacing", "designIdPattern": "^tarjeta-\\d-(titulo|texto)$" },
+    { "rule": "page-height" },
+    { "rule": "position", "designId": "pie-texto" },
+    { "rule": "spacing", "designId": "pie-texto" }
+  ],
+  "hard": false
+}

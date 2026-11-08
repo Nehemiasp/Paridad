@@ -1,0 +1,24 @@
+{
+  "id": "combinacion-titulo-tarjetas-tamano-y-color",
+  "description": "Dos errores a la vez en los títulos de las tarjetas: el tamaño pasa de 22 a 24 px y el color de la tinta #0e1116 al azul #043565 (ambos de la paleta).",
+  "errorType": "combinacion",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": "  font: 800 22px/28px \"Bricolage Grotesque\", sans-serif;\n  color: var(--ink);",
+      "replace": "  font: 800 24px/28px \"Bricolage Grotesque\", sans-serif;\n  color: var(--blue);"
+    }
+  ],
+  "expected": [
+    { "rule": "font-size", "designId": "tarjeta-1-titulo", "severity": "medium", "note": "2 px de diferencia, como tamano-bajada-22" },
+    { "rule": "font-size", "designId": "tarjeta-2-titulo", "severity": "medium" },
+    { "rule": "font-size", "designId": "tarjeta-3-titulo", "severity": "medium" },
+    { "rule": "color-text", "designId": "tarjeta-1-titulo", "severity": "high", "note": "tinta casi negra contra azul oscuro: ΔE > 10" },
+    { "rule": "color-text", "designId": "tarjeta-2-titulo", "severity": "high" },
+    { "rule": "color-text", "designId": "tarjeta-3-titulo", "severity": "high" }
+  ],
+  "acceptable": [
+    { "rule": "size", "designIdPattern": "^tarjeta-\\d-titulo$" }
+  ],
+  "hard": false
+}

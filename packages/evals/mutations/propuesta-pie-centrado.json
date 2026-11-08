@@ -1,0 +1,17 @@
+{
+  "id": "pie-centrado",
+  "description": "El texto del pie se centra (text-align: center) en lugar de quedar alineado a la izquierda; se corre unos 500 px a la derecha.",
+  "errorType": "alineacion",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": "  font-size: 14px;\n  line-height: 20px;",
+      "replace": "  font-size: 14px;\n  line-height: 20px;\n  text-align: center;"
+    }
+  ],
+  "expected": [
+    { "rule": "position", "designId": "pie-texto", "severity": "high", "note": "corrimiento horizontal de más de 12 px" }
+  ],
+  "acceptable": [],
+  "hard": false
+}

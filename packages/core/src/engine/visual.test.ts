@@ -83,7 +83,7 @@ describe("attachVisual", () => {
     const c = designSnapshot().elements.find((e) => e.id === "tarjeta-1")!.box;
     const r = attachVisual(report, raw([region("r1", c.x + 120, c.y + 70, 120, 40)]), { design, page }); // centro de la tarjeta
     expect(r.visual!.regions[0]!.findingIds).not.toContain(radius.id);
-    expect(r.visual!.regions[0]!.classified).toBe(false);
+    expect(r.visual!.regions[0]!.explainedBy).not.toBe("regla");
   });
 
   it("un cambio de radio explica regiones en las esquinas, no en el interior", () => {
@@ -101,7 +101,40 @@ describe("attachVisual", () => {
     const whole = attachVisual(report, raw([region("r1", b.x, b.y, b.width, b.height)]), { design, page });
     expect(whole.visual!.regions[0]!.findingIds).toEqual([f.id]);
     const detail = attachVisual(report, raw([region("r1", b.x + 70, b.y + 20, 20, 10)]), { design, page });
-    expect(detail.visual!.regions[0]!.classified).toBe(false);
+    expect(detail.visual!.regions[0]!.findingIds).toEqual([]);
+    expect(detail.visual!.regions[0]!.explainedBy).not.toBe("regla");
+  });
+
+  it("una copia desplazada del diseño (consecuencia de un cambio de layout) queda clasificada, sin culpar a ninguna regla", () => {
+    const { design, page, report } = setup(() => {});
+    const r = attachVisual(report, raw([{ ...region("r1", 1000, 100, 300, 200), shift: { dx: 0, dy: 8 } }]), { design, page });
+    expect(r.visual!.regions[0]).toMatchObject({ classified: true, explainedBy: "desplazamiento", shift: { dx: 0, dy: 8 }, findingIds: [] });
+    expect(r.findings).toEqual([]);
+    expect(r.score.value).toBe(100);
+  });
+
+  it("la franja que una imagen tiene de más porque la página mide otro alto se explica por el alto", () => {
+    const { design, page, report } = setup((p) => (p.canvas.height += 40));
+    const f = report.findings.find((x) => x.rule === "page-height")!;
+    const r = attachVisual(report, raw([region("r1", 0, 927, 1440, 40)]), { design, page });
+    expect(r.visual!.regions[0]).toMatchObject({ classified: true, explainedBy: "alto-de-pagina", findingIds: [f.id] });
+  });
+
+  it("una diferencia dentro de un elemento emparejado sin hallazgos es ruido de render (tolerancia)…", () => {
+    const { design, page, report } = setup(() => {});
+    const t = page.elements.find((e) => e.text?.normalized === "Casa Nube")!.box;
+    const r = attachVisual(report, raw([region("r1", t.x + 4, t.y + 8, t.width - 8, t.height - 16)]), { design, page });
+    expect(r.visual!.regions[0]).toMatchObject({ classified: true, explainedBy: "tolerancia" });
+  });
+
+  it("…pero no dentro de una imagen emparejada: sus píxeles no los revisa ninguna regla", () => {
+    const { design, page, report } = setup(() => {});
+    for (const s of [design, page]) {
+      s.elements.push({ id: "foto", kind: "image", parentId: "page", z: 99, box: { x: 1000, y: 100, width: 300, height: 200 }, style: {}, image: { alt: "foto" } });
+    }
+    const r2 = attachVisual(compare(design, page), raw([region("r1", 1050, 150, 100, 100)]), { design, page });
+    expect(r2.visual!.regions[0]!.classified).toBe(false);
+    expect(r2.findings.some((f) => f.rule === "visual-unclassified")).toBe(true);
   });
 
   it("la regla se puede apagar", () => {

@@ -2,6 +2,7 @@ import pixelmatch from "pixelmatch";
 import type { Box } from "@paridad/core";
 import { createRaster, decodePng, downscale, encodePng, fitTo, type Raster, type Rgba } from "./raster.ts";
 import { findRegions, type RawRegion } from "./regions.ts";
+import { findShift } from "./shift.ts";
 
 /** Color con el que se rellena lo que una de las dos imágenes no tiene (si una página es más alta que la otra). */
 const MISSING: Rgba = [255, 0, 255, 255];
@@ -18,10 +19,14 @@ export interface VisualDiffInput {
   cellPx?: number;
   /** Mínimo de píxeles distintos para que una región cuente (descarta ruido). Por defecto 16. */
   minRegionPixels?: number;
+  /** px CSS: desplazamiento máximo que se prueba para reconocer una copia desplazada. Por defecto 240. */
+  maxShiftPx?: number;
 }
 
 export interface VisualRegion extends RawRegion {
   id: string;
+  /** Si la región es el contenido del diseño pero corrido (px CSS): consecuencia de un cambio de layout, no un cambio de estilo. */
+  shift?: { dx: number; dy: number };
 }
 
 export interface VisualDiffResult {
@@ -87,12 +92,17 @@ export function visualDiff(input: VisualDiffInput): VisualDiffResult {
 
   const cell = Math.max(1, Math.round(cellPx * target));
   const raw = findRegions(mask, width, height, { cell, minPixels: minRegionPixels });
-  const regions: VisualRegion[] = raw.map((r, i) => ({
-    id: `r${i + 1}`,
-    diffPixels: r.diffPixels,
-    ratio: r.ratio,
-    box: { x: round2(r.box.x / target), y: round2(r.box.y / target), width: round2(r.box.width / target), height: round2(r.box.height / target) },
-  }));
+  const maxShift = Math.round((input.maxShiftPx ?? 240) * target);
+  const regions: VisualRegion[] = raw.map((r, i) => {
+    const shift = findShift(d, p, r.box, maxShift, MISSING);
+    return {
+      id: `r${i + 1}`,
+      diffPixels: r.diffPixels,
+      ratio: r.ratio,
+      box: { x: round2(r.box.x / target), y: round2(r.box.y / target), width: round2(r.box.width / target), height: round2(r.box.height / target) },
+      ...(shift ? { shift: { dx: round2(shift.dx / target), dy: round2(shift.dy / target) } } : {}),
+    };
+  });
 
   // Los recuadros del mapa de calor se dibujan en píxeles de la imagen alineada, no en px CSS.
   const heat = drawHeatmap(p, mask, width, height, cell, raw.map((r) => r.box), target);

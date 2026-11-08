@@ -15,7 +15,7 @@ export interface RawVisual {
   ignoredPixels: number;
   diffRatio: number;
   widthMismatch: boolean;
-  regions: { id: string; box: Box; diffPixels: number; ratio: number }[];
+  regions: { id: string; box: Box; diffPixels: number; ratio: number; shift?: { dx: number; dy: number } }[];
 }
 
 /** Reglas cuyo elemento arrastra consigo a sus hijos (si se mueve o crece, los hijos se ven distintos). */
@@ -92,9 +92,40 @@ export function attachVisual(report: Report, raw: RawVisual, ctx: { design: Snap
     return z ? [{ id: f.id, rule: f.rule, zone: z }] : [];
   });
 
+  // Elementos con hallazgos (de cualquier lado) y parejas «limpias»: emparejadas y sin ningún hallazgo.
+  const flaggedDesign = new Set<string>();
+  const flaggedPage = new Set<string>();
+  for (const f of report.findings) {
+    if (f.design) flaggedDesign.add(f.design.elementId);
+    if (f.page) flaggedPage.add(f.page.elementId);
+    for (const id of f.related ?? []) (flaggedDesign.add(id), flaggedPage.add(id));
+  }
+  const cleanZones = report.matching.pairList.flatMap(({ designId, pageId }) => {
+    const d = dIdx.byId.get(designId);
+    const p = pIdx.byId.get(pageId);
+    if (!d || !p || d.kind === "image" || flaggedDesign.has(designId) || flaggedPage.has(pageId)) return [];
+    const z = union([d.box, p.box]);
+    return z ? [z] : [];
+  });
+
+  // El alto de la página cambió: la franja que una de las dos imágenes no tiene.
+  const dh = ctx.design.canvas.height;
+  const ph = ctx.page.canvas.height;
+  const band: Box | undefined = dh !== ph ? { x: 0, y: Math.min(dh, ph), width: Math.max(ctx.design.canvas.width, ctx.page.canvas.width), height: Math.abs(dh - ph) } : undefined;
+  const heightFinding = report.findings.find((f) => f.rule === "page-height")?.id;
+
   const regions: Visual["regions"] = raw.regions.map((r) => {
+    const { shift, ...base } = r;
+    const a = area(r.box);
     const findingIds = zones.filter(({ rule, zone }) => explains(rule, zone, r.box)).map((z) => z.id);
-    return { ...r, findingIds, classified: findingIds.length > 0 };
+    // Orden: una regla que la explique > el alto de la página > un desplazamiento > estar dentro de la tolerancia.
+    let explainedBy: Visual["regions"][number]["explainedBy"];
+    if (findingIds.length > 0) explainedBy = "regla";
+    else if (band && a > 0 && intersectionArea(r.box, band) / a >= EXPLAINED_FRACTION) explainedBy = "alto-de-pagina";
+    else if (shift) explainedBy = "desplazamiento";
+    else if (a > 0 && cleanZones.some((z) => intersectionArea(r.box, z) / a >= EXPLAINED_FRACTION)) explainedBy = "tolerancia";
+    if (explainedBy === "alto-de-pagina" && heightFinding) findingIds.push(heightFinding);
+    return { ...base, findingIds, classified: explainedBy !== undefined, ...(explainedBy ? { explainedBy } : {}), ...(explainedBy === "desplazamiento" && shift ? { shift } : {}) };
   });
 
   const canvasArea = raw.aligned.width * raw.aligned.height;

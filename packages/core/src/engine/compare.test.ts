@@ -85,6 +85,25 @@ describe("presencia", () => {
   });
 });
 
+describe("emparejar textos movidos", () => {
+  it("un texto casi idéntico sigue siendo el mismo aunque se haya movido mucho", () => {
+    const r = run((p) => shift(p, byText(p, "Casa Nube").id, 600, 0));
+    expect(rules(r)).not.toContain("missing");
+    expect(rules(r)).not.toContain("extra");
+    expect(only(r, "position")[0]!.title).toContain("Posición horizontal: diseño 84 px · código 684 px");
+  });
+
+  it("uno que solo se parece debe estar cerca; lejos, es otro (falta + sobra)", () => {
+    const r = run((p) => {
+      const t = byText(p, "Ver la colección");
+      t.text = { content: "Ver colección", normalized: "Ver colección" }; // similitud 0.81
+      t.box.x += 700;
+    });
+    expect(rules(r)).toContain("missing");
+    expect(rules(r)).toContain("extra");
+  });
+});
+
 describe("posición y espaciado", () => {
   it("padding de 16 a 20: se reporta respecto al contenedor, con evidencia", () => {
     const r = run((page) => {

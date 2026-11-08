@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "schema:json": "tsx scripts/generate-json-schema.ts",
-    "paridad": "node apps/cli/bin/paridad.mjs"
+    "paridad": "node apps/cli/bin/paridad.mjs",
+    "evals": "npm run evals -w @paridad/evals --"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

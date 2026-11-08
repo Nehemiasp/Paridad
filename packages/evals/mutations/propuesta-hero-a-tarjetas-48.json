@@ -1,0 +1,22 @@
+{
+  "id": "hero-a-tarjetas-48",
+  "description": "El padding inferior del hero pasa de 72 a 48 px: el espacio entre el botón del hero y las tarjetas se reduce 24 px.",
+  "errorType": "separacion-entre-secciones",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": ".hero { padding: 96px 84px 72px; }",
+      "replace": ".hero { padding: 96px 84px 48px; }"
+    }
+  ],
+  "expected": [
+    { "rule": "spacing", "designIdPattern": "^tarjeta-\\d$", "severity": "high", "note": "diferencia de 24 px (> 12 px); el hallazgo debe estar en la separación botón → tarjetas, no repartido en cada tarjeta" }
+  ],
+  "acceptable": [
+    { "rule": "spacing", "designIdPattern": "^tarjeta-\\d$" },
+    { "rule": "position", "designIdPattern": "^tarjeta-\\d$" },
+    { "rule": "position", "designId": "pie-texto" },
+    { "rule": "page-height" }
+  ],
+  "hard": false
+}

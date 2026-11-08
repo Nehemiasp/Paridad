@@ -21,9 +21,16 @@ const VisualRegionSchema = z.object({
   diffPixels: z.number().int(),
   /** Píxeles distintos / área de la región. */
   ratio: z.number(),
-  /** Hallazgos de las reglas que explican esta región (vacío = sin clasificar). */
+  /** Hallazgos de las reglas que explican esta región. */
   findingIds: z.array(z.string()),
   classified: z.boolean(),
+  /**
+   * Cómo se explicó: una regla, el alto de la página, un desplazamiento (el contenido del diseño pero corrido: consecuencia
+   * de un cambio de layout) o la tolerancia (un elemento emparejado sin hallazgos: ruido de render). Ausente = sin clasificar.
+   */
+  explainedBy: z.enum(["regla", "alto-de-pagina", "desplazamiento", "tolerancia"]).optional(),
+  /** px CSS, si se explicó por desplazamiento. */
+  shift: z.object({ dx: z.number(), dy: z.number() }).optional(),
 });
 
 /** Resultado de la diferencia por píxeles, cruzado con los hallazgos. */
@@ -54,6 +61,8 @@ export const ReportSchema = z.object({
   }),
   matching: z.object({
     pairs: z.number().int(),
+    /** Qué elemento del diseño se emparejó con cuál de la página (para resaltar y para clasificar diferencias visuales). */
+    pairList: z.array(z.object({ designId: z.string(), pageId: z.string() })),
     missing: z.number().int(),
     extra: z.number().int(),
     ignoredInDesign: z.number().int(),

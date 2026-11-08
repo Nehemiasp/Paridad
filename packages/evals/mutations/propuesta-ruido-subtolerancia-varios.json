@@ -1,0 +1,25 @@
+{
+  "id": "ruido-subtolerancia-varios",
+  "description": "Tres cambios por debajo de su tolerancia a la vez: separación de la navegación 32.5 px, radio de los iconos 12.5 px y espaciado de letras del título -1.25 px. Juntos siguen siendo ruido.",
+  "errorType": "ruido",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": ".nav { display: flex; gap: 32px; font-weight: 500; }",
+      "replace": ".nav { display: flex; gap: 32.5px; font-weight: 500; }"
+    },
+    {
+      "file": "styles.css",
+      "find": "  border-radius: 12px;",
+      "replace": "  border-radius: 12.5px;"
+    },
+    {
+      "file": "styles.css",
+      "find": "  letter-spacing: -1.28px;",
+      "replace": "  letter-spacing: -1.25px;"
+    }
+  ],
+  "expected": [],
+  "acceptable": [],
+  "hard": false
+}

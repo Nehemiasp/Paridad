@@ -1,0 +1,21 @@
+{
+  "id": "enlace-extra-navegacion",
+  "description": "Se agrega un cuarto enlace («Preguntas») a la navegación que no existe en el diseño; la navegación se ensancha y se corre.",
+  "errorType": "elemento-agregado",
+  "edits": [
+    {
+      "file": "index.html",
+      "find": "<a href=\"#contacto\">Contacto</a>",
+      "replace": "<a href=\"#contacto\">Contacto</a>\n        <a href=\"#preguntas\">Preguntas</a>"
+    }
+  ],
+  "expected": [
+    { "rule": "extra", "pageText": "Preguntas", "severity": "high", "note": "elemento que sobra" }
+  ],
+  "acceptable": [
+    { "rule": "position", "designIdPattern": "^nav-" },
+    { "rule": "spacing", "designIdPattern": "^nav-" },
+    { "rule": "spacing", "designId": "btn-secundario" }
+  ],
+  "hard": false
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@paridad/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project @paridad/evals",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "evals": "tsx src/cli.ts"
+  },
+  "devDependencies": {
+    "@paridad/fixtures": "^0.0.0"
+  },
+  "dependencies": {
+    "@paridad/capture": "^0.0.0",
+    "@paridad/core": "^0.0.0",
+    "@paridad/visual": "^0.0.0",
+    "playwright": "1.63.0",
+    "zod": "^4.6.7"
+  }
+}

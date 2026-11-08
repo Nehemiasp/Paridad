@@ -1,0 +1,24 @@
+{
+  "id": "peso-navegacion-400",
+  "description": "Los enlaces de la navegación pasan de peso 500 a 400 (se ven más delgados que en el diseño).",
+  "errorType": "peso-tipografico",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": ".nav { display: flex; gap: 32px; font-weight: 500; }",
+      "replace": ".nav { display: flex; gap: 32px; font-weight: 400; }"
+    }
+  ],
+  "expected": [
+    { "rule": "font-weight", "designId": "nav-coleccion", "severity": ["medium", "high"], "note": "un salto de 100 no está en los ejemplos del criterio; entre media y alta" },
+    { "rule": "font-weight", "designId": "nav-talleres", "severity": ["medium", "high"] },
+    { "rule": "font-weight", "designId": "nav-contacto", "severity": ["medium", "high"] }
+  ],
+  "acceptable": [
+    { "rule": "size", "designIdPattern": "^nav-" },
+    { "rule": "position", "designIdPattern": "^nav-" },
+    { "rule": "spacing", "designIdPattern": "^nav-" },
+    { "rule": "spacing", "designId": "btn-secundario" }
+  ],
+  "hard": false
+}

@@ -1,0 +1,20 @@
+{
+  "id": "texto-tarjeta-3-dos-lineas",
+  "description": "El texto de la tarjeta 3 se alarga («... junto a usted a su gusto.») y ahora se parte en dos líneas; las otras tarjetas ya tenían dos, así que la altura de la fila no cambia.",
+  "errorType": "texto-mas-largo",
+  "edits": [
+    {
+      "file": "index.html",
+      "find": "diseñadas junto a usted.",
+      "replace": "diseñadas junto a usted a su gusto."
+    }
+  ],
+  "expected": [
+    { "rule": "text-content", "designId": "tarjeta-3-texto", "severity": "medium", "note": "otra copia" },
+    { "rule": "text-lines", "designId": "tarjeta-3-texto", "severity": "medium", "note": "una línea más de texto" }
+  ],
+  "acceptable": [
+    { "rule": "size", "designId": "tarjeta-3-texto" }
+  ],
+  "hard": false
+}

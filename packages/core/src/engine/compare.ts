@@ -74,6 +74,7 @@ export function compare(design: Snapshot, page: Snapshot, options: CompareOption
     summary: { total: findings.length, bySeverity, byCategory },
     matching: {
       pairs: match.pairs.length,
+      pairList: match.pairs.map((p) => ({ designId: p.design.id, pageId: p.page.id })),
       missing: match.missing.length,
       extra: match.extra.length,
       ignoredInDesign: design.elements.filter((e) => !dIdx.isRoot(e) && dIdx.isIgnored(e)).length,

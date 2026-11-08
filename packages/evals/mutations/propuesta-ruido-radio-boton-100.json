@@ -1,0 +1,15 @@
+{
+  "id": "ruido-radio-boton-100",
+  "description": "El radio de los botones pasa de 999px a 100px: ambos se recortan a la mitad del lado menor (21 y 28 px) y se pintan idéntico.",
+  "errorType": "ruido",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": "  border-radius: 999px;",
+      "replace": "  border-radius: 100px;"
+    }
+  ],
+  "expected": [],
+  "acceptable": [],
+  "hard": false
+}

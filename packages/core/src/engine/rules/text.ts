@@ -17,7 +17,8 @@ export function textFindings(ctx: Ctx): Finding[] {
       out.push(
         finding({
           rule: "text-content",
-          severity: caseOnly ? "low" : sim < 0.9 ? "high" : "medium",
+          // Un texto muy distinto ya no se empareja: aparece como «falta» (crítica) y «sobra» (alta).
+          severity: caseOnly ? "low" : "medium",
           title: `Texto: diseño «${d.text.normalized}» · código «${p.text.normalized}»${caseOnly ? " (solo cambian las mayúsculas)" : ""}`,
           design: d,
           page: p,

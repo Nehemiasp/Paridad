@@ -1,0 +1,17 @@
+{
+  "id": "color-texto-boton-claro",
+  "description": "El texto del botón primario pasa de blanco (#ffffff) a un azul grisáceo claro #9fb4c9, fuera de la paleta; sigue legible pero se ve apagado.",
+  "errorType": "color-texto",
+  "edits": [
+    {
+      "file": "styles.css",
+      "find": "  background: var(--blue);\n  color: var(--white);",
+      "replace": "  background: var(--blue);\n  color: #9fb4c9;"
+    }
+  ],
+  "expected": [
+    { "rule": "color-text", "designId": "btn-primario-texto", "severity": "high", "note": "ΔE mucho mayor que 10 respecto del blanco" }
+  ],
+  "acceptable": [],
+  "hard": false
+}

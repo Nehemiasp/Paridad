@@ -1,8 +1,11 @@
-import type { SnapshotElement } from "../snapshot/schema.ts";
+import type { Box, SnapshotElement } from "../snapshot/schema.ts";
 import type { ResolvedConfig } from "./config.ts";
 import { PAGE_ROOT_ID, SnapshotIndex, centerDistance, iou } from "./geometry.ts";
 import { deltaE2000 } from "./color.ts";
 import { textSimilarity } from "./similarity.ts";
+
+/** Desde esta similitud un texto se considera «el mismo» sin importar dónde esté. */
+const NEAR_EXACT = 0.95;
 
 export interface Pair {
   design: SnapshotElement;
@@ -63,8 +66,10 @@ export function matchElements(dIdx: SnapshotIndex, pIdx: SnapshotIndex, cfg: Res
       const sim = textSimilarity(d.text!.normalized, p.text!.normalized);
       if (sim < cfg.matching.minTextSimilarity) continue;
       const dist = centerDistance(d.box, p.box);
-      if (dist > cfg.matching.maxDistance) continue;
-      textCandidates.push({ d, p, sim, rank: sim - 0.5 * Math.min(1, dist / cfg.matching.maxDistance) });
+      // Un texto casi idéntico se empareja a cualquier distancia (una tarjeta que se reacomoda sigue siendo
+      // la misma tarjeta); uno solo parecido debe estar cerca, para no emparejar textos distintos al azar.
+      if (sim < NEAR_EXACT && dist > cfg.matching.maxDistance) continue;
+      textCandidates.push({ d, p, sim, rank: sim - 0.5 * Math.min(1, dist / Math.max(cfg.matching.maxDistance, 1)) });
     }
   }
   const order = (a: SnapshotElement, b: SnapshotElement) => a.z - b.z;
@@ -78,11 +83,24 @@ export function matchElements(dIdx: SnapshotIndex, pIdx: SnapshotIndex, cfg: Res
   const dBoxes = dEls.filter((e) => e.kind !== "text").sort((a, b) => dIdx.depth(a) - dIdx.depth(b) || order(a, b));
   const pBoxes = pEls.filter((e) => e.kind !== "text");
 
-  // Cajas que contienen un texto ya emparejado: anclas para sus padres.
-  const anchorPairs = new Set<string>();
+  // Anclas: una caja que contiene textos ya emparejados «pertenece» a la caja que contiene a sus parejas.
+  // textPartners(d): ids de las cajas de la página que contienen las parejas de los textos de d.
+  // textOrigins(p): ids de las cajas del diseño que contienen las parejas de los textos de p.
+  const textPartners = new Map<string, Set<string>>();
+  const textOrigins = new Map<string, Set<string>>();
+  const add = (m: Map<string, Set<string>>, k: string, v: string) => m.set(k, (m.get(k) ?? new Set<string>()).add(v));
   for (const t of pairs) {
-    if (t.design.parentId && t.page.parentId) anchorPairs.add(`${t.design.parentId}|${t.page.parentId}`);
+    if (t.design.parentId && t.page.parentId) {
+      add(textPartners, t.design.parentId, t.page.parentId);
+      add(textOrigins, t.page.parentId, t.design.parentId);
+    }
   }
+
+  /** Posición de un elemento respecto al interior de su padre, si el padre existe y no es la raíz. */
+  const local = (el: SnapshotElement, idx: SnapshotIndex): Box | undefined => {
+    const par = idx.parent(el);
+    return par && !idx.isRoot(par) ? { x: el.box.x - par.box.x, y: el.box.y - par.box.y, width: el.box.width, height: el.box.height } : undefined;
+  };
 
   const levels = [...new Set(dBoxes.map((e) => dIdx.depth(e)))].sort((a, b) => a - b);
   for (const level of levels) {
@@ -90,13 +108,28 @@ export function matchElements(dIdx: SnapshotIndex, pIdx: SnapshotIndex, cfg: Res
     for (const d of dBoxes.filter((e) => dIdx.depth(e) === level && !byDesign.has(e.id))) {
       for (const p of pBoxes) {
         if (byPage.has(p.id) || p.kind !== d.kind) continue;
-        const overlap = iou(d.box, p.box);
-        const anchor = anchorPairs.has(`${d.id}|${p.id}`) ? 0.3 : 0;
-        if (overlap < 0.05 && anchor === 0) continue;
         const parentMatched = d.parentId !== null && p.parentId !== null && (d.parentId === PAGE_ROOT_ID ? p.parentId === PAGE_ROOT_ID : byDesign.get(d.parentId)?.page.id === p.parentId);
+
+        // Superposición global; y, si los padres son pareja, también la local (dentro del padre): así una caja que se
+        // movió más que su propio tamaño porque su contenedor se movió sigue emparejándose con su gemela.
+        let overlap = iou(d.box, p.box);
+        if (parentMatched) {
+          const ld = local(d, dIdx);
+          const lp = local(p, pIdx);
+          if (ld && lp) overlap = Math.max(overlap, iou(ld, lp));
+        }
+
+        const partners = textPartners.get(d.id);
+        const origins = textOrigins.get(p.id);
+        const anchored = partners?.has(p.id) === true;
+        // Los textos que ya son pareja pesan más que la geometría: si p contiene textos que vienen de otra caja del
+        // diseño (o d tiene textos que están en otra caja de la página), no son la misma caja aunque se solapen.
+        const conflict = (partners && partners.size > 0 && !anchored) || (origins && origins.size > 0 && !origins.has(d.id));
+        if (overlap < 0.05 && !anchored) continue;
+
         const parentBonus = parentMatched ? 0.25 : 0;
         const styleBonus = d.style.background && p.style.background && deltaE2000(d.style.background, p.style.background) < cfg.tolerances.colorDeltaE ? 0.1 : 0;
-        const score = overlap + anchor + parentBonus + styleBonus;
+        const score = overlap + (anchored ? 0.6 : 0) - (conflict ? 0.6 : 0) + parentBonus + styleBonus;
         if (score >= cfg.matching.minBoxScore) cands.push({ d, p, score });
       }
     }

@@ -84,6 +84,18 @@ function neighbors(ctx: Ctx, axis: "h" | "v"): Neighbor[] {
   return out;
 }
 
+/** ¿`o` es un eslabón de la cadena que empieza en `start`? */
+function chainFrom(links: Set<Neighbor>, start: Pair, o: Neighbor): boolean {
+  let cur = start;
+  for (let guard = 0; guard < 64; guard++) {
+    const next = [...links].find((l) => l.a === cur);
+    if (!next) return false;
+    if (next === o) return true;
+    cur = next.b;
+  }
+  return false;
+}
+
 const lines = (el: SnapshotElement): number => {
   const lh = el.style.lineHeight ?? (el.style.fontSize ? el.style.fontSize * 1.2 : 0);
   return lh > 0 ? Math.max(1, Math.round(el.box.height / lh)) : 1;
@@ -109,16 +121,41 @@ export function layoutFindings(ctx: Ctx): Finding[] {
   const explainedX = new Set<string>();
   const explainedY = new Set<string>();
   for (const axis of ["h", "v"] as const) {
-    for (const n of neighbors(ctx, axis)) {
-      const gapDelta = n.gapP - n.gapD;
+    const links = neighbors(ctx, axis);
+    const shiftOf = (p: Pair): number => {
+      const d = deltas.get(p.design.id)!;
+      return axis === "h" ? d.dx : d.dy;
+    };
+
+    // Cadenas de huecos uniformes: dos huecos seguidos (A→B→C) que cambian lo mismo son casi seguro un `gap` de CSS.
+    // No se puede saber cuál de los elementos «se movió» (p. ej. una navegación centrada se corre hacia ambos lados),
+    // así que se reporta el hueco en cada eslabón y no la posición de quien quedó en el extremo.
+    const gapDeltaOf = (l: Neighbor): number => l.gapP - l.gapD;
+    const uniform = new Set<Neighbor>();
+    const chainStart = new Map<string, number>(); // id del primer elemento de una cadena → suma de lo que cambiaron sus huecos
+    for (const l1 of links) {
+      for (const l2 of links) {
+        if (l1.b !== l2.a) continue;
+        const d1 = gapDeltaOf(l1);
+        const d2 = gapDeltaOf(l2);
+        if (Math.abs(d1) > t.spacing && Math.abs(d2) > t.spacing && Math.abs(d1 - d2) <= t.spacing && Math.sign(d1) === Math.sign(d2)) {
+          uniform.add(l1);
+          uniform.add(l2);
+        }
+      }
+    }
+    for (const l of uniform) if (![...uniform].some((o) => o.b === l.a)) chainStart.set(l.a.design.id, [...uniform].filter((o) => o.a === l.a || chainFrom(uniform, l.a, o)).reduce((n, o) => n + gapDeltaOf(o), 0));
+
+    for (const n of links) {
+      const gapDelta = gapDeltaOf(n);
       const dA = deltas.get(n.a.design.id)!;
       const sizeDeltaA = axis === "h" ? n.a.page.box.width - n.a.design.box.width : n.a.page.box.height - n.a.design.box.height;
       const textChanged = (p: Pair) => p.design.kind === "text" && Math.abs(axis === "h" ? p.page.box.width - p.design.box.width : p.page.box.height - p.design.box.height) > t.size;
-      const dB = deltas.get(n.b.design.id)!;
-      const shiftB = axis === "h" ? dB.dx : dB.dy;
-      // El hueco cambió por culpa de B: B está fuera de su sitio y el tamaño de A no lo explica.
-      // (Si B está donde debe, el culpable es A —se corrió o cambió de tamaño— y el hallazgo está en A.)
-      const emitted = Math.abs(gapDelta) > t.spacing && Math.abs(shiftB) > t.position && Math.abs(sizeDeltaA) <= t.size && !textChanged(n.a);
+      const shiftB = shiftOf(n.b);
+      // El hueco cambió por culpa de B: B está fuera de su sitio. (Si B está donde debe, el culpable es A
+      // —se corrió o cambió de tamaño— y el hallazgo está en A.) Que A también haya cambiado de tamaño no lo
+      // impide: en una cuadrícula con otro `gap`, las columnas se angostan y el hueco sigue siendo el hallazgo.
+      const emitted = Math.abs(gapDelta) > t.spacing && !textChanged(n.a) && (Math.abs(shiftB) > t.position || uniform.has(n));
       if (emitted) {
         out.push(
           finding({
@@ -127,16 +164,22 @@ export function layoutFindings(ctx: Ctx): Finding[] {
             title: `Separación ${axis === "h" ? "horizontal" : "vertical"} entre ${label(n.a.design)} y ${label(n.b.design)}: diseño ${px(n.gapD)} · código ${px(n.gapP)}`,
             design: n.b.design,
             page: n.b.page,
-            evidence: { property: `separación ${axis === "h" ? "horizontal" : "vertical"}`, expected: round2(n.gapD), actual: round2(n.gapP), delta: round2(gapDelta), unit: "px", extra: { vecino: n.a.design.id } },
+            evidence: { property: `separación ${axis === "h" ? "horizontal" : "vertical"}`, expected: round2(n.gapD), actual: round2(n.gapP), delta: round2(gapDelta), unit: "px", extra: { vecino: n.a.design.id, ...(uniform.has(n) ? { huecosUniformes: true } : {}) } },
             suffix: `${axis}:${n.a.design.id}`,
           }),
         );
       }
       // El corrimiento de B en este eje es suyo solo si no lo explican su vecino A (se corrió o cambió de tamaño
       // y B lo siguió) ni el espaciado ya reportado: en esos casos el hallazgo está en la causa.
-      const followsA = Math.abs(shiftB - ((axis === "h" ? dA.dx : dA.dy) + sizeDeltaA)) <= t.position;
+      const followsA = Math.abs(shiftB - (shiftOf(n.a) + sizeDeltaA)) <= t.position;
       const aDeviates = Math.abs(axis === "h" ? dA.dx : dA.dy) > t.position || Math.abs(sizeDeltaA) > t.size;
       if (emitted || (aDeviates && followsA)) (axis === "h" ? explainedX : explainedY).add(n.b.design.id);
+    }
+
+    // El primer elemento de una cadena de huecos uniformes: su corrimiento es consecuencia de los huecos.
+    for (const [id, total] of chainStart) {
+      const pair = ctx.match.byDesign.get(id)!;
+      if (Math.abs(shiftOf(pair)) <= Math.abs(total) + t.position) (axis === "h" ? explainedX : explainedY).add(id);
     }
   }
 

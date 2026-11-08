@@ -41,6 +41,7 @@ Motivo de cuadros con píldora azul.
 | `npm run schema:json` | Regenera `docs/snapshot.schema.json` desde Zod. |
 | `npm run paridad -- capture --page <url> --width 1440` | Captura una página → `snapshot.json` + `screenshot.png` (por defecto en `out/capture`). |
 | `npm run paridad -- compare --design d.json --page p.json` | Compara dos snapshots → `report.json` + resumen. Con `--figma <url> --page <url>` hace todo: lee Figma, captura la página y compara. `--fail-under 90` sale con código 2 si el puntaje es menor. |
+| `npm run evals` | Mide si Paridad acierta: aplica errores conocidos a la página de ejemplo y reporta detección, precisión y severidad por tipo de error, los falsos positivos de la página de control y el cambio respecto a la corrida anterior. Sale con código 1 si no se cumplen las metas. `-- --validate` revisa las mutaciones propuestas sin abrir el navegador; `-- --only a,b` corre solo esas. |
 | `npm run paridad -- figma --url <frame>` | Lee un frame de Figma → `snapshot.json` + `design.png` (por defecto en `out/design`). Requiere `FIGMA_TOKEN` en `.env.local`. |
 
 ## Estructura
@@ -53,7 +54,8 @@ docs/               snapshot.md y snapshot.schema.json                          
 packages/capture/   Playwright: página construida → snapshot                                             [existe]
 packages/figma/     API REST de Figma: frame → snapshot, con caché                                       [existe]
 packages/visual/    diferencia de píxeles (pixelmatch), regiones y mapa de calor                         [existe]
-packages/evals/     mutaciones y medición de aciertos                                                    [Fase 5]
+packages/evals/     mutaciones (datos JSON), medición de aciertos, tabla y comparación entre corridas    [existe]
+.claude/agents/     `mutation-proposer`: subagente que propone mutaciones nuevas como datos                [existe]
 packages/ai/        capa opcional con Claude                                                             [Fase 6]
 apps/cli/           `paridad capture|figma|compare …` (`capture`, `figma` y `compare`; `--no-visual` omite píxeles)  [existe]
 apps/report/        reporte web (Next.js)                                                                [Fase 7]
@@ -88,7 +90,28 @@ Lo que queda por debajo de su **tolerancia** es ruido y no se reporta.
 
 **Puntaje de paridad (0–100):** `100 − puntos`, donde cada hallazgo resta **crítica 15 · alta 6 · media 2 · baja 0.5**, con un **tope de 40 puntos por categoría** (presencia, posición, tamaño, tipografía, color, texto, contraste, página) para que cien diferencias de 1 px no oculten un elemento que falta. El reporte trae el desglose por categoría y dice si algún tope se aplicó.
 
+**Textos:** una copia distinta es «media» (solo mayúsculas, «baja»); si el texto cambia tanto que ya no se parece (< 80 %), no se empareja y sale como «falta» (crítica) y «sobra» (alta).
+
 **Causa raíz, no síntomas:** la posición se mide respecto al contenedor (si una tarjeta baja 4 px, sus hijos no se reportan); si el corrimiento de un elemento lo explica su vecino (cambió su tamaño o la separación), se reporta una sola vez en la causa; si falta una caja, es un hallazgo con la cuenta de lo que había dentro; y la fuente que no cargó es uno solo.
+
+## Evaluaciones (qué se mide y cómo)
+
+`npm run evals` toma la página de ejemplo, le aplica **errores controlados y conocidos** (mutaciones), la captura con Chromium, la compara con el diseño y mide:
+
+| Métrica | Definición |
+|---|---|
+| **Detección** | expectativas encontradas / expectativas (cada mutación declara qué hallazgos, de qué regla, sobre qué elemento del diseño y con qué severidad debe producir) |
+| **Precisión** | aciertos / (aciertos + falsos positivos). Los efectos colaterales legítimos que la mutación declara (`acceptable`: si algo crece, lo de abajo se corre) no cuentan como falsos positivos ni como aciertos |
+| **Severidad** | de lo detectado con severidad esperada, qué fracción la tiene según el criterio de arriba |
+| **Control** | la página intacta + cambios que NO deben reportarse (`ruido`: 0.2 px, ΔE 0.3, comentarios en el CSS…). Falsos positivos = elementos con algún hallazgo / elementos comparados. Además se cuentan las regiones de píxeles que ninguna regla explica |
+
+**Metas iniciales (a ajustar):** detección ≥ 90 % y falsos positivos en control ≤ 10 %. Una prueba (`packages/evals/src/evals.test.ts`) las vigila: si una mejora de la herramienta las rompe, `npm test` falla.
+
+**Resultado de la primera corrida completa (mutaciones propias):** detección 96 %, **precisión 58,5 %**, severidad 97,9 %. La precisión baja se debía a defectos reales, no a las expectativas: las diferencias de píxeles que eran *consecuencias* de un cambio de layout (el pie baja 8 px) quedaban «sin clasificar»; las cajas que se movían más que su tamaño no se emparejaban; un umbral de severidad era inestable (4,01 px); y una regla de espaciado estaba mal formulada. Tras corregirlos: 100 % / 100 % / 100 %.
+
+**⚠ Cuidado con el sobreajuste:** esas mutaciones las escribí yo y ajusté la herramienta mirando sus resultados, así que ese 100 % no prueba nada. Por eso existe el subagente `mutation-proposer`: propone mutaciones **sin leer la implementación ni los resultados** (solo la página, el diseño y el criterio de severidad de este archivo) y las entrega como datos JSON en `packages/evals/mutations/`. **Resultado con las 10 propuestas del subagente (independientes): 9 pasan; detección 100 %, precisión 98,6 %, severidad 100 %, control 0 % de falsos positivos.**
+
+**Limitación conocida (caso que falla):** `enlace-extra-navegacion` — al agregar un cuarto enlace, la navegación centrada corre los tres anteriores *y* aparece contenido nuevo en la misma región de píxeles; ya no es una «copia desplazada» pura y queda como diferencia visual sin clasificar (falso positivo medio). Arreglarlo exigiría separar la región en partes (lo que se movió / lo nuevo). No se ajustó la herramienta para esconderlo: es justo el tipo de hallazgo que da valor a medir con casos independientes.
 
 ## Decisiones
 
@@ -138,6 +161,12 @@ Una línea cada una: qué se decidió y por qué.
 - **D-042 · `visual` mide y `core` clasifica** — el paquete de imágenes no sabe de hallazgos y `core` no depende de librerías de imagen; `attachVisual` (pura) cruza las regiones con los hallazgos.
 - **D-043 · Una región «la explica» un hallazgo según su tipo de regla** — las que mueven cosas (posición, espaciado, tamaño, falta, sobra) cuentan con sus hijos; radio, borde y sombra solo explican regiones junto al borde (franja de 24 px); fondo y opacidad exigen cubrir ≥ 25 % de la caja; el resto, que ≥ 60 % de la región caiga en la zona. Se descubrió con una prueba que un hallazgo de radio «explicaba» cualquier diferencia dentro de la tarjeta.
 - **D-044 · Lo que ninguna regla explica es un hallazgo de categoría «visual»** — severidad por fracción del lienzo: ≥ 2 % alta, ≥ 0.2 % media, menos baja; entra al puntaje como cualquier otro.
+- **D-045 · Las mutaciones son datos, no código** — un JSON de ediciones de buscar y reemplazar (`find` debe aparecer exactamente una vez) más lo esperado; así un subagente puede proponerlas sin ejecutar nada, y una prueba comprueba que todas siguen aplicando si la página cambia.
+- **D-046 · Cada mutación declara `expected` y `acceptable`** — sin lo segundo, cualquier consecuencia legítima (el pie baja) contaría como falso positivo y la precisión sería inútil; con comodines de más, ocultaría falsos positivos reales. Por eso los `acceptable` deben ser específicos.
+- **D-047 · El subagente no lee `core/`, `visual/` ni los resultados** — sus expectativas deben salir de la especificación (el criterio de severidad) y no de lo que la implementación ya hace; si no, se mediría a la herramienta contra sí misma. Solo escribe JSON y valida con `npm run evals -- --validate`.
+- **D-048 · Se mide también el ruido** — un cambio de 0.2 px o ΔE 0.3 no debe reportarse. Sus diferencias de píxeles se clasifican como «tolerancia» (un elemento emparejado sin hallazgos) o «desplazamiento», nunca como error.
+- **D-049 · Lo que enseñó la primera corrida** — (a) una diferencia de píxeles puede ser una *copia desplazada* del diseño: se reconoce probando desplazamientos y es consecuencia, no error; (b) las cajas hijas se emparejan también por posición relativa a su padre; (c) los textos que ya son pareja pesan más que la geometría al emparejar cajas, con penalización si contradicen; (d) los umbrales de severidad redondean a 0.1 px; (e) dos huecos seguidos que cambian lo mismo son un `gap` de CSS: se reporta el hueco, no el corrimiento del elemento del extremo.
+- **D-050 · La clasificación de una región visual sigue un orden** — una regla que la explique › el alto de la página › un desplazamiento › estar dentro de la tolerancia › sin clasificar. Las imágenes emparejadas no entran en «tolerancia»: ninguna regla revisa sus píxeles.
 
 ## Estado de fases
 
@@ -146,7 +175,7 @@ Una línea cada una: qué se decidió y por qué.
 - [x] **Fase 2** · Leer el diseño desde Figma (⚠ pendiente validar con un archivo real, ver D-029)
 - [x] **Fase 3** · Motor de comparación
 - [x] **Fase 4** · Diferencia visual
-- [ ] Fase 5 · Evaluaciones
+- [x] **Fase 5** · Evaluaciones
 - [ ] Fase 6 · Capa de IA
 - [ ] Fase 7 · Reporte
 - [ ] Fase 8 · Integración y skill

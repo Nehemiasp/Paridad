@@ -63,7 +63,7 @@ export const ConfigSchema = z.object({
     .object({
       /** 0–1: similitud mínima de textos (sin distinguir mayúsculas) para considerarlos el mismo. */
       minTextSimilarity: z.number().min(0).max(1).default(0.8),
-      /** px: distancia máxima entre centros para emparejar dos textos. */
+      /** px: distancia máxima entre centros para emparejar dos textos que solo se parecen (≥ 95 % de similitud no tiene límite). */
       maxDistance: px(400),
       /** px: separación máxima para considerar vecinos a dos elementos hermanos al medir el espaciado. */
       maxNeighborGap: px(200),
