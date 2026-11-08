@@ -5,6 +5,7 @@ import type { AiClient } from "@paridad/ai";
 import { capturePage, writeCapture } from "@paridad/capture";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
 import { runCompare, type CompareOptions } from "./compare.ts";
+import { openInBrowser, startReportServer, untilInterrupted, type ReportEntryInput } from "./serve.ts";
 import { loadEnvLocal } from "./env.ts";
 import { buildIgnoreZones, parsePositiveInt, parseScale } from "./options.ts";
 
@@ -20,6 +21,8 @@ const defaultIo: Io = {
 
 /** Dependencias sustituibles en pruebas (red, entorno, carpeta de trabajo). */
 export interface Deps {
+  /** Sustituye a «levantar el servidor y abrir el navegador» (en las pruebas): recibe las carpetas de los reportes. */
+  open?: (entries: ReportEntryInput[]) => Promise<void>;
   /** Sustituye al modelo de la IA en las pruebas. */
   aiClient?: AiClient;
   fetch?: FetchLike;
@@ -138,6 +141,7 @@ export function buildProgram(io: Io = defaultIo, deps: Deps = {}): Command {
     .option("--ai-model <id>", "modelo de la IA (por defecto claude-haiku-5-5, el más económico)")
     .option("--ai-max-cost <usd>", "tope de costo de la IA en dólares por corrida (por defecto 0.05)")
     .option("--no-ai-images", "no enviar imágenes recortadas a la IA")
+    .option("--open", "al terminar, abre el reporte en el navegador (Ctrl+C para cerrar el servidor)")
     .option("--fail-under <puntaje>", "salir con código 2 si el puntaje es menor (útil en CI)")
     .option("--name <texto>", "nombre de la página en el reporte")
     .option("--ignore-selector <css>", "zona a ignorar por selector CSS (se puede repetir)", collect)
@@ -145,9 +149,34 @@ export function buildProgram(io: Io = defaultIo, deps: Deps = {}): Command {
     .action(async (opts: CompareOptions) => {
       const code = await runCompare(opts, io, deps);
       if (code !== 0) throw new ExitCode(code);
+      if (opts.open) await openReports([{ dir: opts.out ?? "out/compare" }], io, deps);
+    });
+
+  program
+    .command("report")
+    .description("Abre en el navegador un reporte que ya generó (una carpeta con report.json). Con varias --dir, una pestaña por tamaño.")
+    .option("--dir <carpeta>", "carpeta del reporte (se puede repetir: escritorio, móvil…)", collect)
+    .option("--label <texto>", "texto de la pestaña, en el mismo orden que --dir (se puede repetir)", collect)
+    .action(async (opts: { dir?: string[]; label?: string[] }) => {
+      if (!opts.dir?.length) throw new Error("Falta --dir con la carpeta del reporte (la que tiene report.json), p. ej. --dir out/compare.");
+      const labels = opts.label ?? [];
+      if (labels.length > opts.dir.length) throw new Error("Hay más --label que --dir.");
+      await openReports(opts.dir.map((dir, i) => ({ dir, ...(labels[i] ? { label: labels[i] } : {}) })), io, deps);
     });
 
   return program;
+}
+
+/** Levanta la app del reporte, abre el navegador y espera a Ctrl+C. */
+async function openReports(entries: ReportEntryInput[], io: Io, deps: Deps): Promise<void> {
+  if (deps.open) return deps.open(entries);
+  io.out("\nAbriendo el reporte…\n");
+  const server = await startReportServer(entries);
+  io.out(`Reporte en ${server.url}${server.mode === "dev" ? "  (modo desarrollo: ejecute «npm run build -w @paridad/report» para que abra más rápido)" : ""}\n`);
+  if (!openInBrowser(server.url)) io.out("No pude abrir el navegador; abra esa dirección a mano.\n");
+  io.out("Presione Ctrl+C para cerrar.\n");
+  await untilInterrupted();
+  await server.close();
 }
 
 class ExitCode extends Error {

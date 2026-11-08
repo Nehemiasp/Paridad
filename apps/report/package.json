@@ -1,0 +1,28 @@
+{
+  "name": "@paridad/report",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run --root ../.. --project @paridad/report",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@paridad/core": "0.0.0",
+    "next": "^16.4.5",
+    "playwright": "1.63.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@paridad/cli": "^0.0.0",
+    "@paridad/fixtures": "^0.0.0",
+    "@paridad/visual": "^0.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "axe-core": "^4.14.0"
+  }
+}

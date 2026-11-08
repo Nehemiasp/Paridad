@@ -358,3 +358,49 @@ describe("paridad compare --ai", () => {
     expect(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).ai).toMatchObject({ cacheHit: true, costUsd: 0 });
   });
 });
+
+describe("paridad report y --open", () => {
+  const dir = () => mkdtempSync(join(tmpdir(), "paridad-open-"));
+  const designFile = landing.designSnapshot;
+  const pageFile = join(landing.dir, "page.snapshot.json");
+
+  it("compare --open pasa la carpeta del reporte a la app (sin abrir un navegador de verdad en la prueba)", async () => {
+    const out = dir();
+    const opened: { dir: string; label?: string }[][] = [];
+    const io = memoryIo();
+    const code = await run(["compare", "--design", designFile, "--page", pageFile, "--out", out, "--open"], io, { cwd: dir(), open: async (e) => void opened.push(e) });
+    expect(code).toBe(0);
+    expect(opened).toEqual([[{ dir: out }]]);
+  });
+
+  it("sin --open no se abre nada", async () => {
+    const opened: unknown[] = [];
+    await run(["compare", "--design", designFile, "--page", pageFile, "--out", dir()], memoryIo(), { cwd: dir(), open: async (e) => void opened.push(e) });
+    expect(opened).toEqual([]);
+  });
+
+  it("report --dir abre varios reportes, uno por tamaño, con sus etiquetas en orden", async () => {
+    const opened: { dir: string; label?: string }[][] = [];
+    const code = await run(["report", "--dir", "out/escritorio", "--dir", "out/movil", "--label", "Escritorio", "--label", "Móvil"], memoryIo(), { open: async (e) => void opened.push(e) });
+    expect(code).toBe(0);
+    expect(opened[0]).toEqual([{ dir: "out/escritorio", label: "Escritorio" }, { dir: "out/movil", label: "Móvil" }]);
+    opened.length = 0;
+    await run(["report", "--dir", "a", "--dir", "b", "--label", "Solo la primera"], memoryIo(), { open: async (e) => void opened.push(e) });
+    expect(opened[0]).toEqual([{ dir: "a", label: "Solo la primera" }, { dir: "b" }]);
+  });
+
+  it("report sin --dir, o con más etiquetas que carpetas, da un error claro", async () => {
+    const a = memoryIo();
+    expect(await run(["report"], a, { open: async () => undefined })).toBe(1);
+    expect(a.stderr).toContain("Falta --dir");
+    const b = memoryIo();
+    expect(await run(["report", "--dir", "x", "--label", "1", "--label", "2"], b, { open: async () => undefined })).toBe(1);
+    expect(b.stderr).toContain("más --label que --dir");
+  });
+
+  it("si la carpeta no tiene report.json, el servidor real se niega con un mensaje en español", async () => {
+    const io = memoryIo();
+    expect(await run(["report", "--dir", dir()], io)).toBe(1);
+    expect(io.stderr).toContain("No hay report.json");
+  });
+});

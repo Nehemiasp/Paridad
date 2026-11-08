@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { capturePage, writeCapture } from "@paridad/capture";
 import { assertSnapshot, attachVisual, compare, SEVERITIES, type Box, type Report, type Snapshot } from "@paridad/core";
 import { DiskCache, FigmaClient, fetchDesignSnapshot, type FetchLike } from "@paridad/figma";
@@ -83,6 +83,8 @@ export interface CompareOptions {
   aiMaxCost?: string;
   /** `false` con --no-ai-images. */
   aiImages?: boolean;
+  /** Abre el reporte en el navegador al terminar (lo hace main.ts). */
+  open?: boolean;
 }
 
 /** `paridad compare`: dos modos, con archivos snapshot o la tubería completa (Figma + página). */
@@ -112,11 +114,22 @@ export async function runCompare(opts: CompareOptions, io: CompareIo, deps: Comp
     const pPath = resolve(cwd, opts.page);
     design = readSnapshotFile(dPath, "diseño");
     page = readSnapshotFile(pPath, "página");
-    const img = (s: Snapshot, snapPath: string) => (s.canvas.image ? rel(resolve(dirname(snapPath), s.canvas.image.path)) : undefined);
-    paths.design = { snapshot: rel(dPath), ...(img(design, dPath) ? { image: img(design, dPath)! } : {}) };
-    paths.page = { snapshot: rel(pPath), ...(img(page, pPath) ? { image: img(page, pPath)! } : {}) };
-    if (design.canvas.image) designImage = resolve(dirname(dPath), design.canvas.image.path);
-    if (page.canvas.image) pageImage = resolve(dirname(pPath), page.canvas.image.path);
+    // El reporte debe ser autocontenido (se comparte la carpeta y la app solo sirve archivos de ella): si la imagen
+    // está fuera de la carpeta de salida, se copia adentro.
+    const bring = (snapPath: string, image: string | undefined, name: string): string | undefined => {
+      if (!image) return undefined;
+      const source = resolve(dirname(snapPath), image);
+      if (!existsSync(source)) return undefined;
+      const inside = relative(outDir, source);
+      if (!inside.startsWith("..") && !isAbsolute(inside)) return source;
+      const target = join(outDir, name);
+      if (resolve(target) !== source) copyFileSync(source, target);
+      return target;
+    };
+    designImage = bring(dPath, design.canvas.image?.path, "design.png");
+    pageImage = bring(pPath, page.canvas.image?.path, "page.png");
+    paths.design = { snapshot: rel(dPath), ...(designImage ? { image: rel(designImage) } : {}) };
+    paths.page = { snapshot: rel(pPath), ...(pageImage ? { image: rel(pageImage) } : {}) };
   } else {
     // ── Modo tubería: Figma + captura de la página ────────────────────────
     if (!isUrl(opts.page)) throw new Error("Con --figma, --page debe ser la URL de la página (http://localhost:3000, https://…).");

@@ -41,6 +41,9 @@ Motivo de cuadros con píldora azul.
 | `npm run schema:json` | Regenera `docs/snapshot.schema.json` desde Zod. |
 | `npm run paridad -- capture --page <url> --width 1440` | Captura una página → `snapshot.json` + `screenshot.png` (por defecto en `out/capture`). |
 | `npm run paridad -- compare --design d.json --page p.json` | Compara dos snapshots → `report.json` + resumen. Con `--figma <url> --page <url>` hace todo: lee Figma, captura la página y compara. `--fail-under 90` sale con código 2 si el puntaje es menor. |
+| `npm run paridad -- compare … --open` | Al terminar abre el reporte en el navegador (Ctrl+C cierra el servidor local). |
+| `npm run paridad -- report --dir out/escritorio --dir out/movil --label Escritorio --label Móvil` | Abre reportes ya generados; con varias carpetas, una pestaña por tamaño. |
+| `npm run build -w @paridad/report` | Compila la app del reporte (si no está compilada, `--open` usa el modo desarrollo, más lento al arrancar). |
 | `npm run paridad -- compare … --ai` | Agrega la capa de IA (Claude, visión): agrupa hallazgos, propone descartar ruido evidente y redacta con sugerencia de CSS. Apagada por defecto; requiere `ANTHROPIC_API_KEY`. `--ai-model`, `--ai-max-cost 0.05`, `--no-ai-images`; `--ai-simulated` prueba la tubería sin modelo. |
 | `npm run evals` | Mide si Paridad acierta: aplica errores conocidos a la página de ejemplo y reporta detección, precisión y severidad por tipo de error, los falsos positivos de la página de control y el cambio respecto a la corrida anterior. Sale con código 1 si no se cumplen las metas. `-- --validate` revisa las mutaciones propuestas sin abrir el navegador; `-- --only a,b` corre solo esas. |
 | `npm run paridad -- figma --url <frame>` | Lee un frame de Figma → `snapshot.json` + `design.png` (por defecto en `out/design`). Requiere `FIGMA_TOKEN` en `.env.local`. |
@@ -59,7 +62,7 @@ packages/evals/     mutaciones (datos JSON), medición de aciertos, tabla y comp
 .claude/agents/     `mutation-proposer`: subagente que propone mutaciones nuevas como datos                [existe]
 packages/ai/        capa opcional con Claude: agrupa, descarta ruido, redacta; valida contra la evidencia [existe]
 apps/cli/           `paridad capture|figma|compare …` (`capture`, `figma` y `compare`; `--no-visual` omite píxeles)  [existe]
-apps/report/        reporte web (Next.js)                                                                [Fase 7]
+apps/report/        reporte web (Next.js 16): vistas, hallazgos filtrables, Markdown y PDF                [existe]
 ```
 
 Los paquetes se crean al llegar su fase (no hay andamiaje vacío).
@@ -187,7 +190,13 @@ Una línea cada una: qué se decidió y por qué.
 - **D-055 · El prompt trata hallazgos e imágenes como datos, no como instrucciones** — los títulos de los hallazgos incluyen texto de la página (que puede decir «ignore las reglas»); el sistema lo declara y, sobre todo, nada de lo que el modelo diga puede cambiar `findings` ni el puntaje.
 - **D-056 · La clave nunca sale** — se lee de `.env.local`/entorno, no se escribe en la caché ni en los errores (se reemplaza por `***`), y el prompt no incluye rutas de archivos.
 
-## Estado de fases
+## El reporte (app web)
+
+`apps/report` es una app Next.js que **lee `report.json` y sus imágenes de una carpeta** (no se compila con los datos): `paridad … --open` la levanta en `127.0.0.1` en un puerto libre y abre el navegador. Muestra el puntaje grande con su fórmula y desglose, el conteo por severidad y qué se comparó; cuatro vistas (**lado a lado, superpuesta con divisor, transparencia ajustable, mapa de calor** con regiones clicables); la lista de hallazgos filtrable por severidad y tipo, donde al hacer clic se **resaltan las cajas en ambas imágenes** y se muestra lo esperado contra lo obtenido; exportación a **Markdown** (listo para un issue de GitHub, con lo que se ve en la lista) y **PDF**; y **pestañas por tamaño** si se abren varios reportes.
+
+Accesible por diseño y **auditado con axe-core** (WCAG 2.1 AA) en cada vista: se usa con teclado (pestañas con flechas/Inicio/Fin, enlace «Saltar al contenido»), los colores cumplen contraste (una prueba lo calcula con el motor de `core`) y **la severidad nunca depende solo del color** (cada una lleva su forma y su texto: ■ crítica, ▲ alta, ◆ media, ● baja).
+
+## Decisiones
 
 - [x] **Fase 0** · Planificación y base
 - [x] **Fase 1** · Capturar la página construida
