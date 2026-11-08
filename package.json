@@ -19,7 +19,8 @@
     "schema:json": "tsx scripts/generate-json-schema.ts",
     "paridad": "node apps/cli/bin/paridad.mjs",
     "evals": "npm run evals -w @paridad/evals --",
-    "media": "tsx scripts/make-media.ts"
+    "media": "tsx scripts/make-media.ts",
+    "casos": "npm run evals -- --casos docs/casos --no-save"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

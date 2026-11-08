@@ -72,7 +72,7 @@ La app web (`apps/report`, Next.js) muestra el puntaje, el conteo por severidad 
 |---|---|
 | ![](docs/media/reporte-mapa-de-calor.png) | ![](docs/media/reporte-movil.png) |
 
-Un [video corto del flujo](docs/media/flujo-del-reporte.webm) y las capturas se regeneran con `npm run media`.
+Las **historias** para el portafolio (cada error de la evaluación como una tarjeta: diseño, código, diferencia y la causa) están en [`docs/casos/historias.md`](docs/casos/historias.md) y se regeneran con `npm run casos`. Un [video corto del flujo](docs/media/flujo-del-reporte.webm) y las capturas se regeneran con `npm run media`.
 
 ## Dentro de Claude Code
 

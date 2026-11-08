@@ -9,3 +9,17 @@ coverage/
 .next/
 next-env.d.ts
 *.tsbuildinfo
+
+# Cuaderno de casos: en el repositorio solo van las historias elegidas para el portafolio (se regeneran todas con `npm run casos`).
+docs/casos/*/
+!docs/casos/bugs-de-desarrollo/
+!docs/casos/padding-tarjetas-20/
+!docs/casos/fuente-del-titulo-no-carga/
+!docs/casos/tarjeta-2-oculta/
+!docs/casos/color-boton-parecido/
+!docs/casos/contraste-texto-tarjetas/
+!docs/casos/texto-cortado-tarjetas/
+!docs/casos/separacion-navegacion-40/
+!docs/casos/ruido-padding-tarjetas-16-4/
+!docs/casos/enlace-extra-navegacion/
+docs/casos/README.md

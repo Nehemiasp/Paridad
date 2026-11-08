@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const docs = ["README.md", "CLAUDE.md", "docs/snapshot.md", "docs/github-action.md", "docs/caso-de-estudio.md", "fixtures/landing/README.md", "fixtures/landing/figma/README.md"];
+const docs = ["README.md", "CLAUDE.md", "docs/snapshot.md", "docs/github-action.md", "docs/caso-de-estudio.md", "docs/casos/historias.md", "docs/casos/bugs-de-desarrollo/pastilla-sobre-el-texto-en-movil/caso.md", "fixtures/landing/README.md", "fixtures/landing/figma/README.md"];
 
 describe("documentación", () => {
   it.each(docs)("%s: todos los enlaces a archivos del repositorio apuntan a algo que existe", (doc) => {
@@ -20,6 +20,14 @@ describe("documentación", () => {
     for (const f of ["reporte-resumen.png", "reporte-hallazgo.png", "reporte-mapa-de-calor.png", "reporte-movil.png", "flujo-del-reporte.webm"]) {
       expect(statSync(join(root, "docs/media", f)).size, f).toBeGreaterThan(10_000);
     }
+  });
+
+  it("las historias del portafolio versionadas tienen su tarjeta y su caso", () => {
+    const text = readFileSync(join(root, "docs/casos/historias.md"), "utf8");
+    const dirs = [...text.matchAll(/\]\(([a-z0-9-]+)\/caso\.md\)/g)].map((m) => m[1]!);
+    expect(dirs.length).toBeGreaterThanOrEqual(9);
+    for (const d of dirs) expect(existsSync(join(root, "docs/casos", d, "historia.jpg")), d).toBe(true);
+    expect(statSync(join(root, "docs/casos/bugs-de-desarrollo/pastilla-sobre-el-texto-en-movil/captura.png")).size).toBeGreaterThan(10_000);
   });
 
   it("el repositorio no contiene tokens ni claves (Figma, Anthropic, GitHub)", () => {
@@ -47,7 +55,7 @@ describe("documentación", () => {
   });
 
   it("ningún archivo versionado menciona empresas o clientes reales (regla del proyecto: solo datos propios y ficticios)", () => {
-    const text = ["README.md", "docs/caso-de-estudio.md", "fixtures/landing/README.md"].map((f) => readFileSync(join(root, f), "utf8")).join("\n").toLowerCase();
+    const text = ["README.md", "docs/caso-de-estudio.md", "docs/casos/historias.md", "docs/casos/bugs-de-desarrollo/pastilla-sobre-el-texto-en-movil/caso.md", "fixtures/landing/README.md"].map((f) => readFileSync(join(root, f), "utf8")).join("\n").toLowerCase();
     expect(text).not.toContain("lumacode");
   });
 });

@@ -108,6 +108,23 @@ describe("npm run evals (CLI)", () => {
     expect(data.results.map((x: { id: string }) => x.id)).toEqual(["control", "radio-tarjetas-8"]);
   });
 
+  it("los casos que fallan se guardan solos como tarjetas, y --casos guarda todos con su índice", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "muts-"));
+    const { writeFileSync, readFileSync, existsSync: exists } = await import("node:fs");
+    writeFileSync(join(dir, "imposible.json"), JSON.stringify({ id: "imposible", description: "Espera un hallazgo que no puede aparecer.", errorType: "imposible", edits: [], expected: [{ rule: "missing", designId: "logo", severity: "critical" }] }));
+    const out = mkdtempSync(join(tmpdir(), "evals-out-"));
+    const casos = mkdtempSync(join(tmpdir(), "evals-casos-"));
+    const r = await capture(["--only", "imposible,radio-tarjetas-8", "--proposed", dir, "--no-save", "--out", out, "--casos", casos]);
+    expect(r.stdout).toContain("Casos que fallaron, guardados como tarjetas");
+    expect(exists(join(out, "fallos", "imposible", "historia.jpg"))).toBe(true);
+    expect(exists(join(out, "fallos", "radio-tarjetas-8"))).toBe(false); // solo los que fallan
+    for (const id of ["imposible", "radio-tarjetas-8"]) expect(exists(join(casos, id, "caso.md")), id).toBe(true);
+    expect(exists(join(casos, "control"))).toBe(false); // el control no cuenta una historia
+    const index = readFileSync(join(casos, "README.md"), "utf8");
+    expect(index).toContain("Casos: **2** · acertados: **1** · con fallos: **1**");
+    expect(readFileSync(join(casos, "imposible", "caso.md"), "utf8")).toContain("Dónde falló Paridad");
+  });
+
   it("sale con código 1 si no se cumple la meta de detección", async () => {
     // El control no tiene nada que detectar; con una mutación que falla a propósito la meta se rompe.
     const dir = mkdtempSync(join(tmpdir(), "muts-"));

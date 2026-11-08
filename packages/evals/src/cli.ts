@@ -1,10 +1,12 @@
-import { rmSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { chromium } from "playwright";
 import { AnswerCache, createAnthropicClient, createSimulatedClient, DEFAULT_MODEL } from "@paridad/ai";
 import { decideAiDefault, formatAiComparison, runAiEval, type AiEvalResult } from "./ai-eval.ts";
 import { BUILTIN_MUTATIONS } from "./builtin.ts";
+import { indexMarkdown, readDesignPng, saveCase, type SavedCase } from "./casebook.ts";
 import { formatFailures, formatRegressions, formatTable, type EvalRun } from "./format.ts";
 import { loadPrevious, saveRun } from "./history.ts";
 import { checkGoals, computeMetrics, DEFAULT_GOALS, pct } from "./metrics.ts";
@@ -27,12 +29,16 @@ y calcula detección, precisión y severidad por tipo de error, más los falsos 
   --ai-simulated          lo mismo con un modelo simulado (solo prueba la tubería; no mide a Claude)
   --ai-model <id>         modelo de la IA (por defecto ${DEFAULT_MODEL})
   --ai-max-cost <usd>     tope de costo de TODA la evaluación con IA (por defecto 0.5)
+  --casos <carpeta>       guarda cada caso como una tarjeta para el portafolio (historia.jpg + caso.md) con un índice; ej. docs/casos
   --validate              solo validar las mutaciones propuestas (esquema y que sus ediciones apliquen); no abre el navegador
   --json                  imprimir el resultado como JSON
   -h, --help              esta ayuda
 
 Sale con código 1 si no se cumplen las metas.
 `;
+
+/** Las rutas relativas se cuentan desde donde se escribió el comando (`npm run -w` ejecuta desde la carpeta del paquete). */
+const fromHere = (p: string): string => resolve(process.env.INIT_CWD ?? process.cwd(), p);
 
 export async function main(argv: string[], out: (t: string) => void = (t) => process.stdout.write(t), err: (t: string) => void = (t) => process.stderr.write(t)): Promise<number> {
   let values;
@@ -48,6 +54,7 @@ export async function main(argv: string[], out: (t: string) => void = (t) => pro
         "min-detection": { type: "string" },
         "max-control-fp": { type: "string" },
         validate: { type: "boolean" },
+        casos: { type: "string" },
         ai: { type: "boolean" },
         "ai-simulated": { type: "boolean" },
         "ai-model": { type: "string" },
@@ -82,7 +89,7 @@ export async function main(argv: string[], out: (t: string) => void = (t) => pro
     return 1;
   }
 
-  const proposedDir = values.proposed ?? fileURLToPath(new URL("../mutations", import.meta.url));
+  const proposedDir = values.proposed ? fromHere(values.proposed) : fileURLToPath(new URL("../mutations", import.meta.url));
   const proposed = values["no-proposed"] ? { mutations: [] as Mutation[], rejected: [] } : loadMutationsFromDir(proposedDir);
   const ids = new Set<string>();
   let mutations: Mutation[] = [];
@@ -121,14 +128,26 @@ export async function main(argv: string[], out: (t: string) => void = (t) => pro
     return ok ? 0 : 1;
   }
 
-  const outDir = values.out ?? "out/evals";
+  const outDir = fromHere(values.out ?? "out/evals");
   const previous = loadPrevious(outDir);
 
   if (!values.json) out(`Corriendo ${mutations.length} mutaciones y el control (${proposed.mutations.length} propuestas)…\n`);
   const browser = await chromium.launch();
   let detailed;
+  const savedAll: SavedCase[] = [];
+  const savedFailing: SavedCase[] = [];
   try {
     detailed = await runAllDetailed(mutations, { browser, onProgress: (r, i, n) => !values.json && out(`  [${String(i).padStart(2)}/${n}] ${r.passed ? "✓" : "✗"} ${r.id}\n`) });
+
+    // Los casos como imágenes para contar historias: todos si se pidió `--casos`, y siempre los que fallan.
+    const designPng = readDesignPng();
+    for (const d of detailed) {
+      if (d.mutation.id === "control") continue;
+      const input = { mutation: d.mutation, result: d.run.result, run: d.run, designPng };
+      if (values.casos) savedAll.push(await saveCase(browser, fromHere(values.casos), input));
+      if (!d.run.result.passed) savedFailing.push(await saveCase(browser, `${fromHere(values.out ?? "out/evals")}/fallos`, input));
+    }
+    if (values.casos) writeFileSync(`${fromHere(values.casos)}/README.md`, indexMarkdown(savedAll, fromHere(values.casos)));
   } finally {
     await browser.close();
   }
@@ -172,6 +191,8 @@ export async function main(argv: string[], out: (t: string) => void = (t) => pro
       for (const r of proposed.rejected) out(`  ✗ ${r.source}: ${r.reason}\n`);
     }
     out("\n" + formatFailures(results));
+    if (savedFailing.length) out(`\nCasos que fallaron, guardados como tarjetas en ${fromHere(values.out ?? "out/evals")}/fallos/: ${savedFailing.map((c) => c.id).join(", ")}\n`);
+    if (values.casos) out(`\n${savedAll.length} casos guardados en ${fromHere(values.casos)}/ (índice: ${fromHere(values.casos)}/README.md)\n`);
     out("\n" + (previous ? formatRegressions(results, previous.results) : "Sin corrida anterior con la que comparar.\n"));
     if (aiEval) out("\n" + formatAiComparison(metrics, aiEval, decideAiDefault(metrics, aiEval)));
     out(`\nMetas: detección ≥ ${pct(goals.minDetection)} y falsos positivos en control ≤ ${pct(goals.maxControlFalsePositive)} → ${verdict.ok ? "SE CUMPLEN" : `NO SE CUMPLEN (${verdict.failures.join("; ")})`}\n`);

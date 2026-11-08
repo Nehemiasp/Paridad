@@ -31,6 +31,9 @@ export interface MutationRun {
   result: MutationResult;
   report: Report;
   page: Snapshot;
+  /** Captura de la página mutada y mapa de calor contra el diseño (para guardar los casos como imágenes). */
+  screenshot: Buffer;
+  heatmap: Buffer;
 }
 
 const rects = (s: Snapshot): Box[] => s.ignore.flatMap((z) => ("rect" in z ? [z.rect] : []));
@@ -47,11 +50,11 @@ export async function runMutation(mutation: Mutation, browser: Browser, config?:
 
   let report = compare(design, page, { ...(config ? { config } : {}) });
   const v = visualDiff({ design: { png: designPng, scale: design.canvas.scale }, page: { png: captured.screenshot, scale: page.canvas.scale }, ignoreRects: [...rects(design), ...rects(page)] });
-  const { heatmap: _heatmap, ...raw } = v;
+  const { heatmap, ...raw } = v;
   report = attachVisual(report, raw, { design, page, ...(config ? { config } : {}) });
 
   const comparedElements = report.matching.pairs + report.matching.missing + report.matching.extra;
-  return { result: evaluateMutation(mutation, report, page, comparedElements), report, page };
+  return { result: evaluateMutation(mutation, report, page, comparedElements), report, page, screenshot: captured.screenshot, heatmap };
 }
 
 /** Corre la lista completa (siempre con el control primero) y conserva el reporte y la página de cada una. */
